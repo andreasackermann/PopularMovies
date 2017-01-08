@@ -70,9 +70,20 @@ public class ThumbnailsFragment extends Fragment {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 MovieRecord clicked = (MovieRecord) parent.getAdapter().getItem(position);
-                Intent intent = new Intent(getContext(), DetailActivity.class);
-                intent.putExtra("movie", clicked);
-                startActivity(intent);
+                if (getResources().getBoolean(R.bool.onePane)) {
+                    Intent intent = new Intent(getContext(), DetailActivity.class);
+                    intent.putExtra("movie", clicked);
+                    startActivity(intent);
+                } else {
+                    Bundle arguments = new Bundle();
+                    arguments.putParcelable(DetailFragment.MOVIE_RECORD, clicked);
+
+                    DetailFragment fragment = new DetailFragment();
+                    fragment.setArguments(arguments);
+                    getActivity().getSupportFragmentManager().beginTransaction()
+                            .replace(R.id.movie_detail_container, fragment)
+                            .commit();
+                }
             }
         });
         return view;
@@ -112,13 +123,6 @@ public class ThumbnailsFragment extends Fragment {
     public void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
         outState.putParcelableArrayList("movies", movies);
-    }
-
-    public interface Callback {
-        /**
-         * DetailFragmentCallback for when an item has been selected.
-         */
-        public void onItemSelected(Uri dateUri);
     }
 
     public class GetMoviesList extends AsyncTask<String, Void, ArrayList<MovieRecord>> {

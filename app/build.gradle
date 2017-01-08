@@ -21,6 +21,7 @@ android {
     buildTypes.each {
         it.buildConfigField 'String', 'THE_MOVIE_DB_API_KEY', '\"API Key goes here\"'
     }
+    sourceSets { main { res.srcDirs = ['src/main/res', 'src/main/res/layout-sw720dp'] } }
 }
 
 repositories {

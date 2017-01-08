@@ -6,7 +6,7 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 
-public class MainActivity extends AppCompatActivity implements ThumbnailsFragment.Callback {
+public class MainActivity extends AppCompatActivity {
 
     private final static String LOG_TAG = MainActivity.class.getName();
 
@@ -25,10 +25,5 @@ public class MainActivity extends AppCompatActivity implements ThumbnailsFragmen
                     .replace(R.id.movie_detail_container, new DetailFragment())
                     .commit();
         }
-    }
-
-    @Override
-    public void onItemSelected(Uri dateUri) {
-
     }
 }
