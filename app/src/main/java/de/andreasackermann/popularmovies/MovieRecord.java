@@ -137,6 +137,7 @@ public class MovieRecord implements Parcelable {
                             releaseDate
                     ));
                 }
+                Log.d(LOG_TAG, "Got " + records.length() + " records!");
             } catch (JSONException e) {
                 Log.e(LOG_TAG, "Unable to interpret response", e);
             }

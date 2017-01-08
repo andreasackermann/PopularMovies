@@ -1,17 +1,6 @@
-<?xml version="1.0" encoding="utf-8"?>
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
+<fragment xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/fragment_thumbnails"
+    android:name="de.andreasackermann.popularmovies.ThumbnailsFragment"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-
-    tools:context="de.andreasackermann.popularmovies.MainActivity">
-    <GridView
-        android:id="@+id/thumbnails"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:numColumns="auto_fit"
-        android:listSelector="@android:color/transparent"
-        android:columnWidth="150dp"
-        android:stretchMode="columnWidth">
-    </GridView>
-</FrameLayout>
+ />
