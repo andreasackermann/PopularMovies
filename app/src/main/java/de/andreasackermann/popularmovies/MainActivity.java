@@ -13,17 +13,20 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        View view = (View)getLayoutInflater().inflate(R.layout.activity_main, null);
+        View view = getLayoutInflater().inflate(R.layout.activity_main, null);
         setContentView(view);
 
         if (!getResources().getBoolean(R.bool.onePane)) {
             // We're dealing with multi pane layout
             // Set detail fragment
             Log.d(LOG_TAG, "Multi pane mode");
-            getSupportFragmentManager()
-                    .beginTransaction()
-                    .replace(R.id.movie_detail_container, new DetailFragment())
-                    .commit();
+
+            if (savedInstanceState == null) {
+                getSupportFragmentManager()
+                        .beginTransaction()
+                        .replace(R.id.movie_detail_container, new DetailFragment())
+                        .commit();
+            }
         }
     }
 }
