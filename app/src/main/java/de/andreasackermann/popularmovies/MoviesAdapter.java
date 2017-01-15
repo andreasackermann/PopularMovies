@@ -19,7 +19,7 @@ import java.util.List;
 
 public class MoviesAdapter extends ArrayAdapter<MovieRecord> {
 
-    private final String LOG_TAG= MoviesAdapter.class.getSimpleName();
+    private final String LOG_TAG = MoviesAdapter.class.getSimpleName();
 
     public MoviesAdapter(Fragment context, List<MovieRecord> movies) {
         super(context.getActivity(), 0, movies);

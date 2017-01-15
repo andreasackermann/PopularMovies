@@ -1,8 +1,10 @@
 package de.andreasackermann.popularmovies;
 
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.database.Cursor;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.Uri;
@@ -31,6 +33,10 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
+
+import de.andreasackermann.popularmovies.data.MoviesContract;
+import de.andreasackermann.popularmovies.json.MovieJsonHelper;
+import de.andreasackermann.popularmovies.json.ReviewJsonHelper;
 
 /**
  * Created by Andreas on 07.01.2017.
@@ -148,6 +154,12 @@ public class ThumbnailsFragment extends Fragment {
 
         @Override
         protected ArrayList<MovieRecord> doInBackground(@NotNull String... params) {
+            MovieJsonHelper m = new MovieJsonHelper(getContext());
+            m.updateDb();
+
+            ReviewJsonHelper r = new ReviewJsonHelper(getContext(),"328111");
+            r.updateDb();
+
             HttpURLConnection urlConnection = null;
             BufferedReader reader = null;
 
@@ -198,11 +210,37 @@ public class ThumbnailsFragment extends Fragment {
                 }
 
             }
+
+
             return null;
         }
 
         @Override
         protected void onPostExecute(ArrayList<MovieRecord> m) {
+
+//            int i = 0;
+//            for (MovieRecord rec: m) {
+//                m.get(i);
+//                ContentValues val = new ContentValues();
+//                val.put(MoviesContract.MovieEntry.COLUMN_ORIGINAL_TITLE, rec.getOriginalTitle());
+//                val.put(MoviesContract.MovieEntry.COLUMN_OVERVIEW, rec.getOverview());
+//                val.put(MoviesContract.MovieEntry.COLUMN_RELEASED, rec.getReleaseDate());
+//                val.put(MoviesContract.MovieEntry.COLUMN_VOTE_AVG, rec.getVoteAverage());
+//                val.put(MoviesContract.MovieEntry.COLUMN_IMAGE, rec.getMoviePosterImageThumbnail());
+//
+//                Uri uri = getContext().getContentResolver().insert(MoviesContract.MovieEntry.CONTENT_URI, val);
+//                Log.d(LOG_TAG, "Uri=" + uri.toString());
+//                i++;
+//            }
+
+//            Cursor cur = getContext().getContentResolver().query(MoviesContract.MovieEntry.CONTENT_URI,null,null,null,null);
+//            if (cur.moveToFirst()) {
+//                do {
+//                    Log.d(LOG_TAG, cur.getString(cur.getColumnIndex("image")));
+//                } while (cur.moveToNext());
+//            }
+//            cur.close();
+
             movies.clear();
             if (m != null) {
                 movies.addAll(m);

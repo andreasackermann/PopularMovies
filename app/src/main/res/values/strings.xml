@@ -10,4 +10,6 @@
     <string name="pref_order_key" translatable="false">orderby</string>
     <string name="pref_order_default" translatable="false">popular</string>
 
+    <string name="content_authority">de.andreasackermann.popularmovies</string>
+
 </resources>
