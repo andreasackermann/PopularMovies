@@ -14,6 +14,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
+import android.widget.ListView;
 import android.widget.TextView;
 
 import com.squareup.picasso.Picasso;
@@ -23,6 +24,7 @@ import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.List;
 
 import de.andreasackermann.popularmovies.data.MoviesContract;
 import de.andreasackermann.popularmovies.json.MovieJsonHelper;
@@ -41,11 +43,16 @@ public class DetailFragment extends Fragment implements LoaderManager.LoaderCall
     private static final int LOADER_REVIEWS = 1;
     private static final int LOADER_TRAILERS = 2;
 
+    private ReviewsAdapter reviewsAdapter;
+    private TrailersAdapter trailersAdapter;
+
     private ImageView mImageView;
     private TextView mOriginalTitleView;
     private TextView mOverviewView;
     private TextView mReleaseDateView;
     private TextView mVoteAverageView;
+    private ListView mReviews;
+    private ListView mTrailers;
 
 
     public DetailFragment() {
@@ -62,6 +69,8 @@ public class DetailFragment extends Fragment implements LoaderManager.LoaderCall
     @Override
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
 
+        reviewsAdapter = new ReviewsAdapter(getContext(), null, 0);
+        trailersAdapter = new TrailersAdapter(getContext(), null, 0);
 
         Bundle arguments = getArguments();
         if (arguments != null) {
@@ -76,34 +85,58 @@ public class DetailFragment extends Fragment implements LoaderManager.LoaderCall
         mOverviewView = (TextView)root.findViewById(R.id.overview);
         mReleaseDateView = (TextView)root.findViewById(R.id.publishDate);
         mVoteAverageView = (TextView)root.findViewById(R.id.voteAverage);
+        mReviews = (ListView) root.findViewById(R.id.reviews);
+        mReviews.setAdapter(reviewsAdapter);
+        mTrailers = (ListView) root.findViewById(R.id.trailers);
+        mTrailers.setAdapter(trailersAdapter);
+
+
         return root;
     }
 
     @Override
     public void onActivityCreated(@Nullable Bundle savedInstanceState) {
         getLoaderManager().initLoader(LOADER_MOVIES, null, this);
+        getLoaderManager().initLoader(LOADER_REVIEWS, null, this);
+        getLoaderManager().initLoader(LOADER_TRAILERS, null, this);
         super.onActivityCreated(savedInstanceState);
     }
 
     @Override
     public Loader<Cursor> onCreateLoader(int id, Bundle args) {
-        switch (id) {
-            case LOADER_MOVIES:
-                if ( null != mUri ) {
-                    // Now create and return a CursorLoader that will take care of
-                    // creating a Cursor for the data being displayed.
+        if ( null != mUri ) {
+            switch (id) {
+                case LOADER_MOVIES:
+                        return new CursorLoader(
+                                getActivity(),
+                                mUri,
+                                null,
+                                null,
+                                null,
+                                null
+                        );
+
+                case LOADER_REVIEWS:
                     return new CursorLoader(
                             getActivity(),
-                            mUri,
+                            MoviesContract.ReviewEntry.CONTENT_URI.buildUpon().appendPath(MoviesContract.getMovieIdFromUri(mUri)).build(),
                             null,
                             null,
                             null,
                             null
                     );
-                }
-                break;
-            case LOADER_REVIEWS:
-                break;
+
+                case LOADER_TRAILERS:
+                    return new CursorLoader(
+                            getActivity(),
+                            MoviesContract.TrailerEntry.CONTENT_URI.buildUpon().appendPath(MoviesContract.getMovieIdFromUri(mUri)).build(),
+                            null,
+                            null,
+                            null,
+                            null
+                    );
+
+            }
         }
         return null;
     }
@@ -130,7 +163,14 @@ public class DetailFragment extends Fragment implements LoaderManager.LoaderCall
                     mVoteAverageView.setText(voteAvg);
                 }
                 break;
+            case LOADER_REVIEWS:
+                reviewsAdapter.swapCursor(data);
+                break;
+            case LOADER_TRAILERS:
+                trailersAdapter.swapCursor(data);
+                break;
         }
+
     }
 
     @Override

@@ -64,13 +64,22 @@ public class MoviesProvider extends ContentProvider {
             case REVIEWS:
                 sqLiteQueryBuilder.setTables(MoviesContract.ReviewEntry.TABLE_NAME);
                 break;
+            case REVIEWS_FOR_MOVIE:
+                sqLiteQueryBuilder.setTables(MoviesContract.ReviewEntry.TABLE_NAME);
+                sqLiteQueryBuilder.appendWhere(MoviesContract.ReviewEntry.COLUMN_MOVIE_ID + " = " + MoviesContract.getMovieIdFromUri(uri));
+                break;
             case TRAILERS:
                 sqLiteQueryBuilder.setTables(MoviesContract.TrailerEntry.TABLE_NAME);
+                break;
+            case TRAILERS_FOR_MOVIE:
+                sqLiteQueryBuilder.setTables(MoviesContract.TrailerEntry.TABLE_NAME);
+                sqLiteQueryBuilder.appendWhere(MoviesContract.TrailerEntry.COLUMN_MOVIE_ID + " = " + MoviesContract.getMovieIdFromUri(uri));
                 break;
             default:
                 throw new UnsupportedOperationException("Unknown uri: " + uri);
         }
         Cursor cursor = sqLiteQueryBuilder.query(mDbHelper.getReadableDatabase(), projection,selection,selectionArgs,null,null,sortOrder);
+        Log.d(LOG_TAG, "Returning " + cursor.getCount() + " hits for uri " + uri);
         cursor.setNotificationUri(getContext().getContentResolver(), uri);
         return cursor;
     }
@@ -230,56 +239,10 @@ public class MoviesProvider extends ContentProvider {
         final String authority = MoviesContract.CONTENT_AUTHORITY;
         matcher.addURI(authority, MoviesContract.PATH_MOVIES, MOVIES);
         matcher.addURI(authority, MoviesContract.PATH_MOVIES + "/#", MOVIE_DETAIL);
-        matcher.addURI(authority, MoviesContract.PATH_TRAILERS, TRAILERS); //todo  + "/#"
-        matcher.addURI(authority, MoviesContract.PATH_REVIEWS, REVIEWS); //todo  + "/#"
+        matcher.addURI(authority, MoviesContract.PATH_TRAILERS, TRAILERS);
+        matcher.addURI(authority, MoviesContract.PATH_TRAILERS + "/#", TRAILERS_FOR_MOVIE);
+        matcher.addURI(authority, MoviesContract.PATH_REVIEWS, REVIEWS);
+        matcher.addURI(authority, MoviesContract.PATH_REVIEWS + "/#", REVIEWS_FOR_MOVIE);
         return matcher;
-    }
-
-    private Cursor getTrailers(Uri uri) {
-        return mDbHelper.getReadableDatabase().query(
-                MoviesContract.TrailerEntry.TABLE_NAME,
-                null,
-                sTrailerByMovie,
-                new String[] { MoviesContract.getMovieIdFromUri(uri) },
-                null,
-                null,
-                null
-                );
-    }
-
-    private Cursor getReviews(Uri uri) {
-        return mDbHelper.getReadableDatabase().query(
-                MoviesContract.ReviewEntry.TABLE_NAME,
-                null,
-                sReviewByMovie,
-                new String[] { MoviesContract.getMovieIdFromUri(uri) },
-                null,
-                null,
-                null
-        );
-    }
-
-    private Cursor getMovie(Uri uri) {
-        return mDbHelper.getReadableDatabase().query(
-                MoviesContract.MovieEntry.TABLE_NAME,
-                null,
-                sReviewByMovie,
-                new String[] { MoviesContract.getMovieIdFromUri(uri) },
-                null,
-                null,
-                null
-        );
-    }
-
-    private Cursor getMovies() {
-        return mDbHelper.getReadableDatabase().query(
-                MoviesContract.MovieEntry.TABLE_NAME,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null
-        );
     }
 }
