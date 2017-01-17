@@ -55,6 +55,7 @@ public class MovieJsonHelper extends JsonHelper {
             JSONArray records = jsonObject.getJSONArray("results");
             for (int i=0; i<records.length(); i++) {
                 JSONObject record = (JSONObject)records.get(i);
+                String id = record.getString("id");
                 String title = record.getString("title");
                 String posterPath = record.getString("poster_path");
                 File file = new File(context.getExternalFilesDir(null) + "/" + posterPath);
@@ -91,6 +92,7 @@ public class MovieJsonHelper extends JsonHelper {
                 String popularity = record.getString("popularity");
 
                 ContentValues val = new ContentValues();
+                val.put(MoviesContract.MovieEntry._ID, id);
                 val.put(MoviesContract.MovieEntry.COLUMN_ORIGINAL_TITLE, title);
                 val.put(MoviesContract.MovieEntry.COLUMN_OVERVIEW, overview);
                 val.put(MoviesContract.MovieEntry.COLUMN_VOTE_AVG, voteAverage);

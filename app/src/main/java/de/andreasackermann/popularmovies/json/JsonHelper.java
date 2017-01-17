@@ -82,19 +82,19 @@ public abstract class JsonHelper {
                 urlConnection = (HttpURLConnection) url.openConnection();
                 urlConnection.setRequestMethod("GET");
                 urlConnection.connect();
+                if (urlConnection.getResponseCode() == 200) {
+                    InputStream inputStream = urlConnection.getInputStream();
 
-                InputStream inputStream = urlConnection.getInputStream();
+                    if (inputStream != null) {
+                        reader = new BufferedReader(new InputStreamReader(inputStream));
 
-                if (inputStream != null) {
-                    reader = new BufferedReader(new InputStreamReader(inputStream));
-
-                    StringBuffer sb = new StringBuffer();
-                    for (String line = reader.readLine(); line != null; line = reader.readLine()) {
-                        sb.append(line);
+                        StringBuffer sb = new StringBuffer();
+                        for (String line = reader.readLine(); line != null; line = reader.readLine()) {
+                            sb.append(line);
+                        }
+                        return sb.toString();
                     }
-                    return sb.toString();
                 }
-
             } catch (Exception e) {
                 Log.e(LOG_TAG, "Exception: " + e.getMessage());
             } finally {

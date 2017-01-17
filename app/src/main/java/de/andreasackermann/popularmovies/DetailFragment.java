@@ -2,6 +2,7 @@ package de.andreasackermann.popularmovies;
 
 import android.database.Cursor;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
@@ -24,6 +25,9 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 
 import de.andreasackermann.popularmovies.data.MoviesContract;
+import de.andreasackermann.popularmovies.json.MovieJsonHelper;
+import de.andreasackermann.popularmovies.json.ReviewJsonHelper;
+import de.andreasackermann.popularmovies.json.TrailerJsonHelper;
 
 /**
  * Created by Andreas on 07.01.2017.
@@ -32,6 +36,10 @@ import de.andreasackermann.popularmovies.data.MoviesContract;
 public class DetailFragment extends Fragment implements LoaderManager.LoaderCallbacks<Cursor> {
 
     static final String DETAIL_URI = "URI";
+
+    private static final int LOADER_MOVIES = 0;
+    private static final int LOADER_REVIEWS = 1;
+    private static final int LOADER_TRAILERS = 2;
 
     private ImageView mImageView;
     private TextView mOriginalTitleView;
@@ -58,6 +66,8 @@ public class DetailFragment extends Fragment implements LoaderManager.LoaderCall
         Bundle arguments = getArguments();
         if (arguments != null) {
             mUri = arguments.getParcelable(DetailFragment.DETAIL_URI);
+            new httpReviewFetcher().execute(MoviesContract.getMovieIdFromUri(mUri));
+
         }
 
         View root = inflater.inflate(R.layout.fragment_detail, container, false);
@@ -71,45 +81,55 @@ public class DetailFragment extends Fragment implements LoaderManager.LoaderCall
 
     @Override
     public void onActivityCreated(@Nullable Bundle savedInstanceState) {
-        getLoaderManager().initLoader(0, null, this);
+        getLoaderManager().initLoader(LOADER_MOVIES, null, this);
         super.onActivityCreated(savedInstanceState);
     }
 
     @Override
     public Loader<Cursor> onCreateLoader(int id, Bundle args) {
-        if ( null != mUri ) {
-            // Now create and return a CursorLoader that will take care of
-            // creating a Cursor for the data being displayed.
-            return new CursorLoader(
-                    getActivity(),
-                    mUri,
-                    null,
-                    null,
-                    null,
-                    null
-            );
+        switch (id) {
+            case LOADER_MOVIES:
+                if ( null != mUri ) {
+                    // Now create and return a CursorLoader that will take care of
+                    // creating a Cursor for the data being displayed.
+                    return new CursorLoader(
+                            getActivity(),
+                            mUri,
+                            null,
+                            null,
+                            null,
+                            null
+                    );
+                }
+                break;
+            case LOADER_REVIEWS:
+                break;
         }
         return null;
     }
 
     @Override
     public void onLoadFinished(Loader<Cursor> loader, Cursor data) {
-        if (data != null && data.moveToFirst()) {
-            String path = data.getString(data.getColumnIndex(MoviesContract.MovieEntry.COLUMN_IMAGE));
-            Picasso picasso = Picasso.with(getContext());
-            picasso.load(new File(path)).into(mImageView);
+        switch (loader.getId()) {
+            case LOADER_MOVIES:
+                if (data != null && data.moveToFirst()) {
+                    String path = data.getString(data.getColumnIndex(MoviesContract.MovieEntry.COLUMN_IMAGE));
+                    Picasso picasso = Picasso.with(getContext());
+                    picasso.load(new File(path)).into(mImageView);
 
-            String originalTitle = data.getString(data.getColumnIndex(MoviesContract.MovieEntry.COLUMN_ORIGINAL_TITLE));
-            mOriginalTitleView.setText(originalTitle);
+                    String originalTitle = data.getString(data.getColumnIndex(MoviesContract.MovieEntry.COLUMN_ORIGINAL_TITLE));
+                    mOriginalTitleView.setText(originalTitle);
 
-            String overview = data.getString(data.getColumnIndex(MoviesContract.MovieEntry.COLUMN_OVERVIEW));
-            mOverviewView.setText(overview);
+                    String overview = data.getString(data.getColumnIndex(MoviesContract.MovieEntry.COLUMN_OVERVIEW));
+                    mOverviewView.setText(overview);
 
-            String releaseDate = formatReleaseDate(data.getString(data.getColumnIndex(MoviesContract.MovieEntry.COLUMN_RELEASED)));
-            mReleaseDateView.setText(releaseDate);
+                    String releaseDate = formatReleaseDate(data.getString(data.getColumnIndex(MoviesContract.MovieEntry.COLUMN_RELEASED)));
+                    mReleaseDateView.setText(releaseDate);
 
-            String voteAvg = formatVoteAverage(data.getString(data.getColumnIndex(MoviesContract.MovieEntry.COLUMN_VOTE_AVG)));
-            mVoteAverageView.setText(voteAvg);
+                    String voteAvg = formatVoteAverage(data.getString(data.getColumnIndex(MoviesContract.MovieEntry.COLUMN_VOTE_AVG)));
+                    mVoteAverageView.setText(voteAvg);
+                }
+                break;
         }
     }
 
@@ -129,5 +149,16 @@ public class DetailFragment extends Fragment implements LoaderManager.LoaderCall
 
     private String formatVoteAverage(String voteAverage) {
         return voteAverage + "/10";
+    }
+
+    private class httpReviewFetcher extends AsyncTask {
+
+        @Override
+        protected Object doInBackground(Object[] params) {
+            MovieJsonHelper h = new MovieJsonHelper(getContext());
+            new ReviewJsonHelper(getActivity(), (String) params[0]).updateDb();
+            new TrailerJsonHelper(getActivity(), (String) params[0]).updateDb();
+            return null;
+        }
     }
 }

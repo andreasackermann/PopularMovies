@@ -63,7 +63,7 @@ public class MoviesContract {
         public static final String COLUMN_FAVORITE_IDX = "favorite_idx";
     }
 
-    //https://api.themoviedb.org/3/movie/328111/reviews?api_key=d45807e444d5e57e84da248a17016595
+
     public static final class ReviewEntry implements  BaseColumns {
 
         public static final Uri CONTENT_URI =
@@ -85,7 +85,7 @@ public class MoviesContract {
 
     }
 
-    //https://api.themoviedb.org/3/movie/328111/videos?api_key=d45807e444d5e57e84da248a17016595
+
     public static final class TrailerEntry implements  BaseColumns {
 
         public static final Uri CONTENT_URI =
