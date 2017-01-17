@@ -5,8 +5,6 @@ import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.util.Log;
 
-import de.andreasackermann.popularmovies.MoviesAdapter;
-
 /**
  * Created by Andreas on 12.01.2017.
  */
@@ -16,7 +14,7 @@ public class MoviesDbHelper extends SQLiteOpenHelper {
     private final String LOG_TAG = MoviesDbHelper.class.getSimpleName();
 
     // If you change the database schema, you must increment the database version.
-    private static final int DATABASE_VERSION = 6;
+    private static final int DATABASE_VERSION = 8;
 
     static final String DATABASE_NAME = "movies.db";
 
@@ -29,7 +27,7 @@ public class MoviesDbHelper extends SQLiteOpenHelper {
 
         final String SQL_CREATE_MOVIES_TABLE =
                 "CREATE TABLE " + MoviesContract.MovieEntry.TABLE_NAME +
-                        " (" + MoviesContract.MovieEntry._ID + " INTEGER PRIMARY KEY," +
+                        " (" + MoviesContract.MovieEntry._ID + " INTEGER PRIMARY KEY ON CONFLICT REPLACE," +
                         MoviesContract.MovieEntry.COLUMN_ORIGINAL_TITLE + " TEXT NOT NULL, " +
                         MoviesContract.MovieEntry.COLUMN_OVERVIEW + " TEXT NOT NULL, " +
                         MoviesContract.MovieEntry.COLUMN_RELEASED + " TEXT NOT NULL, " +

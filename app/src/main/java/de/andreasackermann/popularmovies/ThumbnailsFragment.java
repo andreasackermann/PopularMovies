@@ -1,19 +1,17 @@
 package de.andreasackermann.popularmovies;
 
-import android.content.ContentValues;
-import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.database.Cursor;
-import android.net.ConnectivityManager;
-import android.net.NetworkInfo;
-import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.support.annotation.Nullable;
 import android.support.design.widget.Snackbar;
 import android.support.v4.app.Fragment;
+import android.support.v4.app.LoaderManager;
+import android.support.v4.content.CursorLoader;
+import android.support.v4.content.Loader;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -24,31 +22,19 @@ import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.GridView;
 
-import org.jetbrains.annotations.NotNull;
-
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.util.ArrayList;
-
 import de.andreasackermann.popularmovies.data.MoviesContract;
 import de.andreasackermann.popularmovies.json.MovieJsonHelper;
-import de.andreasackermann.popularmovies.json.ReviewJsonHelper;
+
 
 /**
  * Created by Andreas on 07.01.2017.
  */
 
-public class ThumbnailsFragment extends Fragment {
+public class ThumbnailsFragment extends Fragment implements LoaderManager.LoaderCallbacks<Cursor> {
 
     private final static String LOG_TAG = ThumbnailsFragment.class.getName();
 
-    private ArrayList movies = new ArrayList<MovieRecord>();
-
-    private MoviesAdapter moviesAdapter;
+    private ThumbnailAdapter thumbnailAdapter;
 
     private GridView thumbnails;
 
@@ -57,42 +43,48 @@ public class ThumbnailsFragment extends Fragment {
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setHasOptionsMenu(true);
-
-
-        if (savedInstanceState != null) {
-            movies = savedInstanceState.getParcelableArrayList("movies");
-        }
-        moviesAdapter = new MoviesAdapter(this, movies);
-
     }
 
     @Nullable
     @Override
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+
+        thumbnailAdapter = new ThumbnailAdapter(getActivity(), null, 0);
+
         View view = inflater.inflate(R.layout.fragment_thumbnail, container, false);
         thumbnails = (GridView) view.findViewById(R.id.thumbnails);
-        thumbnails.setAdapter(moviesAdapter);
+        thumbnails.setAdapter(thumbnailAdapter);
         thumbnails.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                MovieRecord clicked = (MovieRecord) parent.getAdapter().getItem(position);
-                if (getResources().getBoolean(R.bool.onePane)) {
-                    Intent intent = new Intent(getContext(), DetailActivity.class);
-                    intent.putExtra("movie", clicked);
-                    startActivity(intent);
-                } else {
-                    Bundle arguments = new Bundle();
-                    arguments.putParcelable(DetailFragment.MOVIE_RECORD, clicked);
+                Cursor cursor = (Cursor) parent.getItemAtPosition(position);
+                if (cursor != null) {
+                    String movieId = cursor.getString(cursor.getColumnIndex(MoviesContract.MovieEntry._ID));
+                    if (getResources().getBoolean(R.bool.onePane)) {
+                        Intent intent = new Intent(getContext(), DetailActivity.class);
+                        intent.setData(MoviesContract.MovieEntry.CONTENT_URI.buildUpon().appendPath(movieId).build());
+                        startActivity(intent);
+                    } else {
+                        Bundle arguments = new Bundle();
+                        arguments.putParcelable(DetailFragment.DETAIL_URI, MoviesContract.MovieEntry.CONTENT_URI.buildUpon().appendPath(movieId).build());
 
-                    DetailFragment fragment = new DetailFragment();
-                    fragment.setArguments(arguments);
-                    getActivity().getSupportFragmentManager().beginTransaction()
-                            .replace(R.id.movie_detail_container, fragment)
-                            .commit();
+                        DetailFragment fragment = new DetailFragment();
+                        fragment.setArguments(arguments);
+                        getActivity().getSupportFragmentManager().beginTransaction()
+                                .replace(R.id.movie_detail_container, fragment)
+                                .commit();
+                    }
                 }
             }
         });
         return view;
+    }
+
+    @Override
+    public void onActivityCreated(@Nullable Bundle savedInstanceState) {
+        getLoaderManager().initLoader(0, null, this);
+        new httpFetcher().execute();
+        super.onActivityCreated(savedInstanceState);
     }
 
     @Override
@@ -114,149 +106,76 @@ public class ThumbnailsFragment extends Fragment {
 
     @Override
     public void onResume() {
-        loadMovies();
         super.onResume();
     }
-
-    public void loadMovies() {
-        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getActivity());
-        String order = prefs.getString(getString(R.string.pref_order_key),getString(R.string.pref_order_default));
-        new GetMoviesList().execute(order);
-    }
-
 
     @Override
     public void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
-        outState.putParcelableArrayList("movies", movies);
     }
 
-    public class GetMoviesList extends AsyncTask<String, Void, ArrayList<MovieRecord>> {
 
-        public static final String API_VERSION = "3";
-        public static final String API_ENDPOINT = "api.themoviedb.org";
-        public static final String API_KEY = "api_key";
-        public static final String PROTOCOL = "https";
-        public static final String MOVIE = "movie";
-        private final String LOG_TAG= GetMoviesList.class.getSimpleName();
 
-        /**
-         * solution from
-         * http://stackoverflow.com/questions/1560788/how-to-check-internet-access-on-android-inetaddress-never-times-out
-         * as suggested in implementation guide
-         */
-        public boolean isOnline() {
-            ConnectivityManager cm =
-                    (ConnectivityManager) getActivity().getSystemService(Context.CONNECTIVITY_SERVICE);
-            NetworkInfo netInfo = cm.getActiveNetworkInfo();
-            return netInfo != null && netInfo.isConnectedOrConnecting();
+    @Override
+    public Loader<Cursor> onCreateLoader(int id, Bundle args) {
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getActivity());
+        String order = prefs.getString(getString(R.string.pref_order_key),getString(R.string.pref_order_default));
+        String sortOrder;
+        switch(order) {
+            case "popular":
+                sortOrder = MoviesContract.MovieEntry.COLUMN_POPULARITY + " DESC";
+                break;
+            default:
+                sortOrder = MoviesContract.MovieEntry.COLUMN_VOTE_AVG + " DESC";
         }
+        Log.d(LOG_TAG, "onCreateLoader");
+        return new CursorLoader(
+                getActivity(),
+                MoviesContract.MovieEntry.CONTENT_URI,
+                null,
+                null,
+                null,
+                sortOrder
+        );
+    }
 
-        @Override
-        protected ArrayList<MovieRecord> doInBackground(@NotNull String... params) {
-            MovieJsonHelper m = new MovieJsonHelper(getContext());
-            m.updateDb();
-
-            ReviewJsonHelper r = new ReviewJsonHelper(getContext(),"328111");
-            r.updateDb();
-
-            HttpURLConnection urlConnection = null;
-            BufferedReader reader = null;
-
-            if (isOnline()) {
-
-                try {
-                    Uri.Builder builder = new Uri.Builder();
-                    builder.scheme(PROTOCOL);
-                    builder.authority(API_ENDPOINT);
-                    builder.appendPath(API_VERSION);
-                    builder.appendPath(MOVIE);
-                    builder.appendPath(params[0]);
-                    builder.appendQueryParameter(API_KEY, BuildConfig.THE_MOVIE_DB_API_KEY);
-                    Uri uri = builder.build();
-
-                    URL url = new URL(uri.toString());
-
-                    urlConnection = (HttpURLConnection) url.openConnection();
-                    urlConnection.setRequestMethod("GET");
-                    urlConnection.connect();
-
-                    InputStream inputStream = urlConnection.getInputStream();
-
-                    if (inputStream != null) {
-                        reader = new BufferedReader(new InputStreamReader(inputStream));
-
-                        StringBuffer sb = new StringBuffer();
-                        for (String line = reader.readLine(); line != null; line = reader.readLine()) {
-                            sb.append(line);
+    @Override
+    public void onLoadFinished(Loader<Cursor> loader, Cursor data) {
+        Log.d(LOG_TAG, "onLoadFinished");
+        if (data.getCount() > 0) {
+            Log.d(LOG_TAG, "Cursor count = " + data.getCount());
+            thumbnailAdapter.swapCursor(data);
+        } else {
+            Snackbar snackbar = Snackbar
+                    .make(thumbnails, ThumbnailsFragment.this.getString(R.string.warn_no_internet), Snackbar.LENGTH_LONG)
+                    .setAction(ThumbnailsFragment.this.getString(R.string.warn_button_retry), new View.OnClickListener() {
+                        @Override
+                        public void onClick(View view) {
+                            // todo implement
                         }
-                        /*
-                         * According to https://discussions.udacity.com/t/api-only-returns-20-movies-is-that-right/32048
-                         * we do not have to do any paging, but can work with the 20 titles returned with page 1
-                         */
-                        return MovieRecord.Parser.parse(sb.toString());
-                    }
-                } catch (Exception e) {
-                    Log.e(LOG_TAG, e.getMessage());
-                } finally {
-                    if (urlConnection != null) {
-                        urlConnection.disconnect();
-                    }
-                    if (reader != null) {
-                        try {
-                            reader.close();
-                        } catch (final IOException e) {}
-                    }
-                }
+                    });
 
-            }
-
-
-            return null;
+            snackbar.show();
         }
+        // TODO scoll?
+    }
+
+    @Override
+    public void onLoaderReset(Loader<Cursor> loader) {
+        Log.d(LOG_TAG, "onLoaderReset");
+        thumbnailAdapter.swapCursor(null);
+    }
+
+    private class httpFetcher extends AsyncTask {
 
         @Override
-        protected void onPostExecute(ArrayList<MovieRecord> m) {
+        protected Object doInBackground(Object[] params) {
+            SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getActivity());
+            String order = prefs.getString(getString(R.string.pref_order_key),getString(R.string.pref_order_default));
 
-//            int i = 0;
-//            for (MovieRecord rec: m) {
-//                m.get(i);
-//                ContentValues val = new ContentValues();
-//                val.put(MoviesContract.MovieEntry.COLUMN_ORIGINAL_TITLE, rec.getOriginalTitle());
-//                val.put(MoviesContract.MovieEntry.COLUMN_OVERVIEW, rec.getOverview());
-//                val.put(MoviesContract.MovieEntry.COLUMN_RELEASED, rec.getReleaseDate());
-//                val.put(MoviesContract.MovieEntry.COLUMN_VOTE_AVG, rec.getVoteAverage());
-//                val.put(MoviesContract.MovieEntry.COLUMN_IMAGE, rec.getMoviePosterImageThumbnail());
-//
-//                Uri uri = getContext().getContentResolver().insert(MoviesContract.MovieEntry.CONTENT_URI, val);
-//                Log.d(LOG_TAG, "Uri=" + uri.toString());
-//                i++;
-//            }
-
-//            Cursor cur = getContext().getContentResolver().query(MoviesContract.MovieEntry.CONTENT_URI,null,null,null,null);
-//            if (cur.moveToFirst()) {
-//                do {
-//                    Log.d(LOG_TAG, cur.getString(cur.getColumnIndex("image")));
-//                } while (cur.moveToNext());
-//            }
-//            cur.close();
-
-            movies.clear();
-            if (m != null) {
-                movies.addAll(m);
-            } else {
-                Snackbar snackbar = Snackbar
-                        .make(thumbnails, ThumbnailsFragment.this.getString(R.string.warn_no_internet), Snackbar.LENGTH_INDEFINITE)
-                        .setAction(ThumbnailsFragment.this.getString(R.string.warn_button_retry), new View.OnClickListener() {
-                            @Override
-                            public void onClick(View view) {
-                                ThumbnailsFragment.this.loadMovies();
-                            }
-                        });
-
-                snackbar.show();
-            }
-            moviesAdapter.notifyDataSetChanged();
+            MovieJsonHelper h = new MovieJsonHelper(getContext());
+            h.updateDb();
+            return null;
         }
     }
 }

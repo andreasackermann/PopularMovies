@@ -10,15 +10,15 @@ import android.support.v7.app.AppCompatActivity;
 
 public class DetailActivity extends AppCompatActivity {
 
+
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_detail);
 
-        MovieRecord movie = (MovieRecord)(getIntent().getParcelableExtra("movie"));
-
         Bundle arguments = new Bundle();
-        arguments.putParcelable(DetailFragment.MOVIE_RECORD, movie);
+        arguments.putParcelable(DetailFragment.DETAIL_URI, getIntent().getData());
 
         DetailFragment fragment = new DetailFragment();
         fragment.setArguments(arguments);

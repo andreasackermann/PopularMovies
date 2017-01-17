@@ -3,6 +3,7 @@ package de.andreasackermann.popularmovies.data;
 import android.content.ContentResolver;
 import android.net.Uri;
 import android.provider.BaseColumns;
+import android.util.Log;
 
 import de.andreasackermann.popularmovies.MainActivity;
 
@@ -110,7 +111,7 @@ public class MoviesContract {
     }
 
     public static String getMovieIdFromUri(Uri uri) {
-        return uri.getPathSegments().get(2);
+        return uri.getPathSegments().get(1);
     }
 
 }

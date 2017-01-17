@@ -52,8 +52,6 @@ public class MoviesProvider extends ContentProvider {
     @Nullable
     @Override
     public Cursor query(Uri uri, String[] projection, String selection, String[] selectionArgs, String sortOrder) {
-        Cursor cursor;
-
         SQLiteQueryBuilder sqLiteQueryBuilder = new SQLiteQueryBuilder();
         switch (sUriMatcher.match(uri)) {
             case MOVIES:
@@ -72,7 +70,9 @@ public class MoviesProvider extends ContentProvider {
             default:
                 throw new UnsupportedOperationException("Unknown uri: " + uri);
         }
-        return sqLiteQueryBuilder.query(mDbHelper.getReadableDatabase(), projection,selection,selectionArgs,null,null,sortOrder);
+        Cursor cursor = sqLiteQueryBuilder.query(mDbHelper.getReadableDatabase(), projection,selection,selectionArgs,null,null,sortOrder);
+        cursor.setNotificationUri(getContext().getContentResolver(), uri);
+        return cursor;
     }
 
     @Nullable
@@ -140,6 +140,41 @@ public class MoviesProvider extends ContentProvider {
         getContext().getContentResolver().notifyChange(uri, null);
         Log.d(LOG_TAG, "Inserted: " + returnUri.toString());
         return returnUri;
+    }
+
+    @Override
+    public int bulkInsert(Uri uri, ContentValues[] values) {
+        final SQLiteDatabase db = mDbHelper.getWritableDatabase();
+        final int match = sUriMatcher.match(uri);
+        int insertCount = 0;
+        String tableName;
+        switch (match) {
+            case MOVIES:
+                tableName= MoviesContract.MovieEntry.TABLE_NAME;
+                break;
+            case REVIEWS:
+                tableName= MoviesContract.ReviewEntry.TABLE_NAME;
+                break;
+            case TRAILERS:
+                tableName= MoviesContract.TrailerEntry.TABLE_NAME;
+                break;
+            default:
+                return super.bulkInsert(uri, values);
+        }
+        db.beginTransaction();
+        try {
+            for (ContentValues value : values) {
+                long _id = db.insert(tableName, null, value);
+                if (_id != -1) {
+                    insertCount++;
+                }
+            }
+            db.setTransactionSuccessful();
+        } finally {
+            db.endTransaction();
+        }
+        getContext().getContentResolver().notifyChange(uri, null);
+        return insertCount;
     }
 
     @Override

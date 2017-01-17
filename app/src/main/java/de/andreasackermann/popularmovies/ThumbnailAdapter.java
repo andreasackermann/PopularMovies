@@ -10,6 +10,8 @@ import android.widget.ImageView;
 
 import com.squareup.picasso.Picasso;
 
+import java.io.File;
+
 import de.andreasackermann.popularmovies.data.MoviesContract;
 
 /**
@@ -17,8 +19,6 @@ import de.andreasackermann.popularmovies.data.MoviesContract;
  */
 
 public class ThumbnailAdapter extends CursorAdapter {
-
-    private final static String LOG_TAG = ThumbnailAdapter.class.getName();
 
     public ThumbnailAdapter(Context context, Cursor c, int flags) {
         super(context, c, flags);
@@ -33,8 +33,8 @@ public class ThumbnailAdapter extends CursorAdapter {
     @Override
     public void bindView(View view, Context context, Cursor cursor) {
         ImageView imageView = (ImageView)view.findViewById(R.id.movieCell);
-
+        String path = cursor.getString(cursor.getColumnIndex(MoviesContract.MovieEntry.COLUMN_IMAGE));
         Picasso picasso = Picasso.with(context);
-        picasso.load(cursor.getString(cursor.getColumnIndex(MoviesContract.MovieEntry.COLUMN_IMAGE))).into(imageView);
+        picasso.load(new File(path)).into(imageView);
     }
 }

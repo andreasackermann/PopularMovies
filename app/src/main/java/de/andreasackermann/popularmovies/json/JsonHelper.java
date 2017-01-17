@@ -7,9 +7,6 @@ import android.net.NetworkInfo;
 import android.net.Uri;
 import android.util.Log;
 
-import org.json.JSONArray;
-import org.json.JSONObject;
-
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -18,8 +15,6 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.Vector;
 
-import de.andreasackermann.popularmovies.BuildConfig;
-import de.andreasackermann.popularmovies.MovieRecord;
 
 /**
  * Created by Andreas on 15.01.2017.
@@ -38,7 +33,7 @@ public abstract class JsonHelper {
 
     protected Uri.Builder httpUriBuilder;
 
-    private Context context;
+    protected Context context;
 
     public JsonHelper(Context context) {
         httpUriBuilder = new Uri.Builder();
@@ -52,8 +47,12 @@ public abstract class JsonHelper {
 
     public void updateDb() {
         String resp = getResponse();
-        Vector<ContentValues> val = parseInput(resp);
-        insertToDb(val);
+        if (resp != null) {
+            Vector<ContentValues> val = parseInput(resp);
+            if (val.size() > 0) {
+                insertToDb(val);
+            }
+        }
     }
 
     /**
@@ -97,7 +96,7 @@ public abstract class JsonHelper {
                 }
 
             } catch (Exception e) {
-                Log.e(LOG_TAG, e.getMessage());
+                Log.e(LOG_TAG, "Exception: " + e.getMessage());
             } finally {
                 if (urlConnection != null) {
                     urlConnection.disconnect();
@@ -118,11 +117,7 @@ public abstract class JsonHelper {
     protected abstract Uri getUri();
 
     protected void insertToDb(Vector<ContentValues> cVValues) {
-        for (int i = 0; i<cVValues.size(); i++) {
-            context.getContentResolver().insert(getUri(), cVValues.get(i));
-        }
+        int insertCount = context.getContentResolver().bulkInsert(getUri(), cVValues.toArray(new ContentValues[0]) );
+        Log.d(LOG_TAG, "Inserted " + insertCount + " records.");
     }
-
-
-
 }
