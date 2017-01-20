@@ -31,7 +31,7 @@ public class TrailersAdapter extends CursorAdapter {
         TextView authorView = (TextView) view.findViewById(R.id.trailerName);
         authorView.setText(cursor.getString(cursor.getColumnIndex(MoviesContract.TrailerEntry.COLUMN_NAME)));
 
-        TextView contentView = (TextView) view.findViewById(R.id.trailerKey);
-        contentView.setText(cursor.getString(cursor.getColumnIndex(MoviesContract.TrailerEntry.COLUMN_KEY)));
+//        TextView contentView = (TextView) view.findViewById(R.id.trailerKey);
+//        contentView.setText(cursor.getString(cursor.getColumnIndex(MoviesContract.TrailerEntry.COLUMN_KEY)));
     }
 }

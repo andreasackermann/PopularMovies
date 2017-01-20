@@ -56,11 +56,11 @@ public class MoviesContract {
          * SQLite does not have a separate Boolean storage class. Instead, Boolean values are stored as integers 0 (false) and 1 (true).
          * TODO maybe add check constraints
          */
-//        public static final String COLUMN_CAT_RATED = "rated";
-//
-//        public static final String COLUMN_CAT_POPULAR = "popular";
+        public static final String COLUMN_CAT_TOP_RATED = "is_top_rated";
 
-        public static final String COLUMN_FAVORITE_IDX = "favorite_idx";
+        public static final String COLUMN_CAT_POPULAR = "is_popular";
+
+        public static final String COLUMN_CAT_FAVORITE = "is_favorite";
     }
 
 

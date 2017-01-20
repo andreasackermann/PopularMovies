@@ -6,9 +6,18 @@
     <string name="warn_button_retry">RETRY</string>
     <string name="title_activity_detail">MovieDetail</string>
 
+    <string name="label_trailers">Videos</string>
+    <string name="label_reviews">Reviews</string>
+
     <string name="pref_order_label">Order by</string>
     <string name="pref_order_key" translatable="false">orderby</string>
-    <string name="pref_order_default" translatable="false">popular</string>
+    <string name="pref_order_default" translatable="false">@string/value_order_popular</string>
+    <string name="label_order_popular">most popular</string>
+    <string name="label_order_top_rated">top rated</string>
+    <string name="label_order_favorites">personal favorites</string>
+    <string name="value_order_popular" translatable="false">popular</string>
+    <string name="value_order_top_rated" translatable="false">top_rated</string>
+    <string name="value_order_favorites" translatable="false">favorites</string>
 
     <string name="content_authority">de.andreasackermann.popularmovies</string>
 

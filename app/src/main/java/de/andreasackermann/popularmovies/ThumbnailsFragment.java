@@ -34,6 +34,8 @@ public class ThumbnailsFragment extends Fragment implements LoaderManager.Loader
 
     private final static String LOG_TAG = ThumbnailsFragment.class.getName();
 
+    public static final String SQLITE_TRUE = "1";
+
     private ThumbnailAdapter thumbnailAdapter;
 
     private GridView thumbnails;
@@ -54,6 +56,7 @@ public class ThumbnailsFragment extends Fragment implements LoaderManager.Loader
         View view = inflater.inflate(R.layout.fragment_thumbnail, container, false);
         thumbnails = (GridView) view.findViewById(R.id.thumbnails);
         thumbnails.setAdapter(thumbnailAdapter);
+
         thumbnails.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
@@ -105,36 +108,37 @@ public class ThumbnailsFragment extends Fragment implements LoaderManager.Loader
     }
 
     @Override
-    public void onResume() {
-        super.onResume();
-    }
-
-    @Override
-    public void onSaveInstanceState(Bundle outState) {
-        super.onSaveInstanceState(outState);
-    }
-
-
-
-    @Override
     public Loader<Cursor> onCreateLoader(int id, Bundle args) {
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getActivity());
         String order = prefs.getString(getString(R.string.pref_order_key),getString(R.string.pref_order_default));
         String sortOrder;
-        switch(order) {
-            case "popular":
-                sortOrder = MoviesContract.MovieEntry.COLUMN_POPULARITY + " DESC";
-                break;
-            default:
-                sortOrder = MoviesContract.MovieEntry.COLUMN_VOTE_AVG + " DESC";
+        String whereCondition;
+
+        if (order.equals(getContext().getResources().getString(R.string.value_order_popular))) {
+            sortOrder = MoviesContract.MovieEntry.COLUMN_POPULARITY + " DESC";
+            whereCondition = MoviesContract.MovieEntry.COLUMN_CAT_POPULAR + " = ? ";
+        } else if (order.equals(getContext().getResources().getString(R.string.value_order_top_rated))) {
+            sortOrder = MoviesContract.MovieEntry.COLUMN_VOTE_AVG + " DESC";
+            whereCondition = MoviesContract.MovieEntry.COLUMN_CAT_TOP_RATED + " = ? ";
+        } else if (order.equals(getContext().getResources().getString(R.string.value_order_favorites))) {
+            /*
+             * https://review.udacity.com/#!/rubrics/67/view
+             * When the "favorites" setting option is selected, the main view displays the entire favorites
+             * collection based on movie ids stored in the ContentProvider
+             */
+            sortOrder = MoviesContract.MovieEntry._ID + " ASC";
+            whereCondition = MoviesContract.MovieEntry.COLUMN_CAT_FAVORITE + " = ? ";
         }
-        Log.d(LOG_TAG, "onCreateLoader");
+        else {
+            throw new UnsupportedOperationException("Unknown sort order " + order);
+        }
+
         return new CursorLoader(
                 getActivity(),
                 MoviesContract.MovieEntry.CONTENT_URI,
                 null,
-                null,
-                null,
+                whereCondition,
+                new String[] { SQLITE_TRUE },
                 sortOrder
         );
     }
@@ -145,6 +149,7 @@ public class ThumbnailsFragment extends Fragment implements LoaderManager.Loader
         if (data.getCount() > 0) {
             Log.d(LOG_TAG, "Cursor count = " + data.getCount());
             thumbnailAdapter.swapCursor(data);
+
         } else {
             Snackbar snackbar = Snackbar
                     .make(thumbnails, ThumbnailsFragment.this.getString(R.string.warn_no_internet), Snackbar.LENGTH_LONG)

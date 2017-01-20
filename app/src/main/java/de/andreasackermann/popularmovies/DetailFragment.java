@@ -1,5 +1,9 @@
 package de.andreasackermann.popularmovies;
 
+import android.content.ActivityNotFoundException;
+import android.content.ContentResolver;
+import android.content.ContentValues;
+import android.content.Intent;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.AsyncTask;
@@ -14,7 +18,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
-import android.widget.ListView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import com.squareup.picasso.Picasso;
@@ -24,7 +28,6 @@ import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.List;
 
 import de.andreasackermann.popularmovies.data.MoviesContract;
 import de.andreasackermann.popularmovies.json.MovieJsonHelper;
@@ -39,59 +42,49 @@ public class DetailFragment extends Fragment implements LoaderManager.LoaderCall
 
     static final String DETAIL_URI = "URI";
 
+    private static final  String LOG_TAG = DetailFragment.class.getName();
+
     private static final int LOADER_MOVIES = 0;
     private static final int LOADER_REVIEWS = 1;
     private static final int LOADER_TRAILERS = 2;
 
-    private ReviewsAdapter reviewsAdapter;
-    private TrailersAdapter trailersAdapter;
-
+    private LinearLayout mReviewsContainer;
+    private LinearLayout mTrailersContainer;
     private ImageView mImageView;
+    private ImageView mFavoriteToggle;
     private TextView mOriginalTitleView;
     private TextView mOverviewView;
     private TextView mReleaseDateView;
     private TextView mVoteAverageView;
-    private ListView mReviews;
-    private ListView mTrailers;
 
+    private Uri mUri;
 
     public DetailFragment() {
 //        setHasOptionsMenu(true);
     }
 
-    private final static String LOG_TAG = DetailFragment.class.getName();
-
-    public static final String MOVIE_RECORD ="movie";
-
-    private Uri mUri;
-
     @Nullable
     @Override
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
 
-        reviewsAdapter = new ReviewsAdapter(getContext(), null, 0);
-        trailersAdapter = new TrailersAdapter(getContext(), null, 0);
-
         Bundle arguments = getArguments();
         if (arguments != null) {
             mUri = arguments.getParcelable(DetailFragment.DETAIL_URI);
-            new httpReviewFetcher().execute(MoviesContract.getMovieIdFromUri(mUri));
+            new httpFetcher().execute(MoviesContract.getMovieIdFromUri(mUri));
 
+            View root = inflater.inflate(R.layout.fragment_detail, container, false);
+            mImageView = (ImageView)root.findViewById(R.id.moviePoster);
+            mOriginalTitleView = (TextView)root.findViewById(R.id.movieTitle);
+            mOverviewView = (TextView)root.findViewById(R.id.overview);
+            mReleaseDateView = (TextView)root.findViewById(R.id.publishDate);
+            mVoteAverageView = (TextView)root.findViewById(R.id.voteAverage);
+            mReviewsContainer = (LinearLayout) root.findViewById(R.id.reviews);
+            mTrailersContainer = (LinearLayout) root.findViewById(R.id.trailers);
+            mFavoriteToggle = (ImageView) root.findViewById(R.id.toggleFavorite);
+            return root;
         }
+        return null;
 
-        View root = inflater.inflate(R.layout.fragment_detail, container, false);
-        mImageView = (ImageView)root.findViewById(R.id.moviePoster);
-        mOriginalTitleView = (TextView)root.findViewById(R.id.movieTitle);
-        mOverviewView = (TextView)root.findViewById(R.id.overview);
-        mReleaseDateView = (TextView)root.findViewById(R.id.publishDate);
-        mVoteAverageView = (TextView)root.findViewById(R.id.voteAverage);
-        mReviews = (ListView) root.findViewById(R.id.reviews);
-        mReviews.setAdapter(reviewsAdapter);
-        mTrailers = (ListView) root.findViewById(R.id.trailers);
-        mTrailers.setAdapter(trailersAdapter);
-
-
-        return root;
     }
 
     @Override
@@ -143,6 +136,7 @@ public class DetailFragment extends Fragment implements LoaderManager.LoaderCall
 
     @Override
     public void onLoadFinished(Loader<Cursor> loader, Cursor data) {
+        Log.d(LOG_TAG, "onLoadFinished id=" + loader.getId());
         switch (loader.getId()) {
             case LOADER_MOVIES:
                 if (data != null && data.moveToFirst()) {
@@ -161,17 +155,59 @@ public class DetailFragment extends Fragment implements LoaderManager.LoaderCall
 
                     String voteAvg = formatVoteAverage(data.getString(data.getColumnIndex(MoviesContract.MovieEntry.COLUMN_VOTE_AVG)));
                     mVoteAverageView.setText(voteAvg);
+
+                    final int isFavoriteAction = data.getInt(data.getColumnIndex(MoviesContract.MovieEntry.COLUMN_CAT_FAVORITE))==0?1:0;
+                    if (isFavoriteAction==0) {
+                        mFavoriteToggle.setImageResource(R.drawable.ic_favorite_border_black_24px);
+                    } else {
+                        mFavoriteToggle.setImageResource(R.drawable.ic_favorite_black_24px);
+                    }
+                    mFavoriteToggle.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            ContentValues val = new ContentValues();
+                            val.put(MoviesContract.MovieEntry.COLUMN_CAT_FAVORITE, isFavoriteAction);
+                            Log.d(LOG_TAG, "updating " + mUri.toString());
+                            getContext().getContentResolver().update(mUri,val,null,null);
+                        }
+                    });
+
                 }
                 break;
             case LOADER_REVIEWS:
-                reviewsAdapter.swapCursor(data);
+                mReviewsContainer.removeAllViews();
+                try {
+                    data.moveToFirst();
+                    do {
+                        View row = LayoutInflater.from(getActivity()).inflate(R.layout.review_row, null);
+                        ((TextView) row.findViewById(R.id.reviewAuthor)).setText(data.getString(data.getColumnIndex(MoviesContract.ReviewEntry.COLUMN_AUTHOR)));
+                        ((TextView) row.findViewById(R.id.reviewContent)).setText(data.getString(data.getColumnIndex(MoviesContract.ReviewEntry.COLUMN_CONTENT)));
+                        mReviewsContainer.addView(row);
+                    } while (data.moveToNext());
+                } catch (Exception e) {}
                 break;
             case LOADER_TRAILERS:
-                trailersAdapter.swapCursor(data);
+                mTrailersContainer.removeAllViews();
+                try {
+                    data.moveToFirst();
+                    do {
+
+                        View row = LayoutInflater.from(getActivity()).inflate(R.layout.trailer_row, null);
+                        ((TextView) row.findViewById(R.id.trailerName)).setText(data.getString(data.getColumnIndex(MoviesContract.TrailerEntry.COLUMN_NAME)));
+                        final String key = data.getString(data.getColumnIndex(MoviesContract.TrailerEntry.COLUMN_KEY));
+                        ((ImageView) row.findViewById(R.id.trailerPlayIcon)).setOnClickListener(new View.OnClickListener() {
+                            @Override
+                            public void onClick(View v) {
+                                watchYoutubeVideo(key);
+                            }
+                        });
+                        mTrailersContainer.addView(row);
+                    } while (data.moveToNext());
+                } catch (Exception e) {}
                 break;
         }
-
     }
+
 
     @Override
     public void onLoaderReset(Loader<Cursor> loader) { }
@@ -191,7 +227,7 @@ public class DetailFragment extends Fragment implements LoaderManager.LoaderCall
         return voteAverage + "/10";
     }
 
-    private class httpReviewFetcher extends AsyncTask {
+    private class httpFetcher extends AsyncTask {
 
         @Override
         protected Object doInBackground(Object[] params) {
@@ -199,6 +235,21 @@ public class DetailFragment extends Fragment implements LoaderManager.LoaderCall
             new ReviewJsonHelper(getActivity(), (String) params[0]).updateDb();
             new TrailerJsonHelper(getActivity(), (String) params[0]).updateDb();
             return null;
+        }
+    }
+
+
+    /*
+     * Solution from http://stackoverflow.com/questions/574195/android-youtube-app-play-video-intent
+     */
+    public void watchYoutubeVideo(String id){
+        Intent appIntent = new Intent(Intent.ACTION_VIEW, Uri.parse("vnd.youtube:" + id));
+        Intent webIntent = new Intent(Intent.ACTION_VIEW,
+                Uri.parse("http://www.youtube.com/watch?v=" + id));
+        try {
+            startActivity(appIntent);
+        } catch (ActivityNotFoundException ex) {
+            startActivity(webIntent);
         }
     }
 }

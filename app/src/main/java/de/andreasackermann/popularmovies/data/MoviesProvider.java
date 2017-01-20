@@ -5,8 +5,11 @@ import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.UriMatcher;
 import android.database.Cursor;
+import android.database.SQLException;
+import android.database.sqlite.SQLiteConstraintException;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteQueryBuilder;
+import android.graphics.Movie;
 import android.net.Uri;
 import android.support.annotation.Nullable;
 import android.util.Log;
@@ -117,12 +120,9 @@ public class MoviesProvider extends ContentProvider {
 
         switch (match) {
             case MOVIES: {
-
-                long _id = db.insertWithOnConflict(MoviesContract.MovieEntry.TABLE_NAME, null, values, SQLiteDatabase.CONFLICT_REPLACE);
-                if ( _id > 0 )
-                    returnUri = ContentUris.withAppendedId(MoviesContract.MovieEntry.CONTENT_URI, _id);
-                else
-                    throw new android.database.SQLException("Failed to insert row into " + uri);
+                // keep personal favorite setting
+                long _id = insertOrUpdateById(db, uri, MoviesContract.MovieEntry.TABLE_NAME, values, MoviesContract.MovieEntry._ID);
+                returnUri = ContentUris.withAppendedId(MoviesContract.MovieEntry.CONTENT_URI, _id);
                 break;
             }
             case REVIEWS: {
@@ -151,33 +151,78 @@ public class MoviesProvider extends ContentProvider {
         return returnUri;
     }
 
+    /**
+     * Idea based on http://stackoverflow.com/questions/23417476/use-insert-or-replace-in-contentprovider
+     * In case of a conflict when inserting the values, another update query is sent.
+     *
+     * @param db     Database to insert to.
+     * @param uri    Content provider uri.
+     * @param table  Table to insert to.
+     * @param values The values to insert to.
+     * @param column Column to identify the object.
+     * @throws android.database.SQLException
+     */
+    private long insertOrUpdateById(SQLiteDatabase db, Uri uri, String table,
+                                    ContentValues values, String column) throws SQLException {
+        try {
+            return db.insertOrThrow(table, null, values);
+        } catch (SQLiteConstraintException e) {
+            int nrRows = update(uri, values, column + "=?",
+                    new String[]{values.getAsString(column)});
+            if (nrRows == 0)
+                throw e;
+
+            return Long.parseLong(values.getAsString(column));
+
+        }
+    }
+
     @Override
     public int bulkInsert(Uri uri, ContentValues[] values) {
         final SQLiteDatabase db = mDbHelper.getWritableDatabase();
         final int match = sUriMatcher.match(uri);
         int insertCount = 0;
         String tableName;
-        switch (match) {
-            case MOVIES:
-                tableName= MoviesContract.MovieEntry.TABLE_NAME;
-                break;
-            case REVIEWS:
-                tableName= MoviesContract.ReviewEntry.TABLE_NAME;
-                break;
-            case TRAILERS:
-                tableName= MoviesContract.TrailerEntry.TABLE_NAME;
-                break;
-            default:
-                return super.bulkInsert(uri, values);
-        }
         db.beginTransaction();
         try {
-            for (ContentValues value : values) {
-                long _id = db.insert(tableName, null, value);
-                if (_id != -1) {
-                    insertCount++;
-                }
+            switch (match) {
+                case MOVIES:
+                    for (ContentValues value : values) {
+                        long _id = insertOrUpdateById(
+                                db,
+                                uri,
+                                MoviesContract.MovieEntry.TABLE_NAME,
+                                value,
+                                MoviesContract.MovieEntry._ID);
+                        if (_id != -1) {
+                            insertCount++;
+                        }
+                    }
+                    break;
+                case REVIEWS:
+                    tableName= MoviesContract.ReviewEntry.TABLE_NAME;
+                    for (ContentValues value : values) {
+                        long _id = db.insert(tableName, null, value);
+                        if (_id != -1) {
+                            insertCount++;
+                        }
+                    }
+                    break;
+                case TRAILERS:
+                    tableName= MoviesContract.TrailerEntry.TABLE_NAME;
+                    for (ContentValues value : values) {
+                        long _id = db.insert(tableName, null, value);
+                        if (_id != -1) {
+                            insertCount++;
+                        }
+                    }
+                    break;
+                default:
+                    return super.bulkInsert(uri, values);
             }
+
+
+
             db.setTransactionSuccessful();
         } finally {
             db.endTransaction();
@@ -218,6 +263,13 @@ public class MoviesProvider extends ContentProvider {
         switch (match) {
             case MOVIES:
                 updateCount = db.update(MoviesContract.MovieEntry.TABLE_NAME, values, selection, selectionArgs);
+                break;
+            case MOVIE_DETAIL:
+                if (selection==null) {
+                    updateCount = db.update(MoviesContract.MovieEntry.TABLE_NAME, values, MoviesContract.MovieEntry._ID + " = ?", new String[] { MoviesContract.getMovieIdFromUri(uri) });
+                } else {
+                    throw new UnsupportedOperationException("Update only allowed based on _ID");
+                }
                 break;
             case REVIEWS:
                 updateCount = db.update(MoviesContract.ReviewEntry.TABLE_NAME, values, selection, selectionArgs);

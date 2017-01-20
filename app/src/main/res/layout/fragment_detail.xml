@@ -1,6 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="match_parent" android:layout_height="match_parent">
+<ScrollView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/scrollContainer"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
     <LinearLayout
         xmlns:android="http://schemas.android.com/apk/res/android"
         android:layout_width="match_parent"
@@ -44,6 +48,12 @@
                 android:orientation="vertical"
                 android:layout_weight="4"
                 android:gravity="center">
+                <ImageView
+                    android:id="@+id/toggleFavorite"
+                    android:padding="8dp"
+                    android:layout_width="48dip"
+                    android:layout_height="48dip"
+                    />
                 <TextView
                     android:id="@+id/publishDate"
                     style="@style/detailTextBasic"
@@ -60,14 +70,31 @@
             android:padding="16dp"
             android:id="@+id/overview"/>
         <TextView
+            android:text="@string/label_trailers"
+            android:textStyle="bold"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content" />
-        <ListView
+            android:layout_height="wrap_content"
+            android:paddingLeft="16dp"/>
+        <LinearLayout
+            android:orientation="vertical"
+            android:showDividers="middle"
+            android:divider="@drawable/divider"
+            android:dividerPadding="0dp"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:padding="16dp"
             android:id="@+id/trailers"/>
-        <ListView
+        <TextView
+            android:text="@string/label_reviews"
+            android:textStyle="bold"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingLeft="16dp"/>
+        <LinearLayout
+            android:orientation="vertical"
+            android:showDividers="middle"
+            android:divider="@drawable/divider"
+            android:dividerPadding="0dp"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:padding="16dp"

@@ -4,14 +4,11 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
-import android.graphics.drawable.Drawable;
 import android.net.Uri;
-import android.os.Environment;
 import android.preference.PreferenceManager;
 import android.util.Log;
 
 import com.squareup.picasso.Picasso;
-import com.squareup.picasso.Target;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -41,10 +38,13 @@ public class MovieJsonHelper extends JsonHelper {
 
     public MovieJsonHelper(Context context) {
         super(context);
-        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
-        String order = prefs.getString(context.getString(R.string.pref_order_key),context.getString(R.string.pref_order_default));
-        httpUriBuilder.appendPath(order);
+        httpUriBuilder.appendPath(getOrder());
         httpUriBuilder.appendQueryParameter(API_KEY, BuildConfig.THE_MOVIE_DB_API_KEY);
+    }
+
+    private String getOrder() {
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
+        return prefs.getString(context.getString(R.string.pref_order_key),context.getString(R.string.pref_order_default));
     }
 
     @Override
@@ -99,6 +99,10 @@ public class MovieJsonHelper extends JsonHelper {
                 val.put(MoviesContract.MovieEntry.COLUMN_POPULARITY, popularity);
                 val.put(MoviesContract.MovieEntry.COLUMN_RELEASED, releaseDate);
                 val.put(MoviesContract.MovieEntry.COLUMN_IMAGE, file.toString());
+                val.put(MoviesContract.MovieEntry.COLUMN_CAT_TOP_RATED,
+                        getOrder().equals(context.getResources().getString(R.string.value_order_top_rated))?1:0);
+                val.put(MoviesContract.MovieEntry.COLUMN_CAT_POPULAR,
+                        getOrder().equals(context.getResources().getString(R.string.value_order_popular))?1:0);
 
                 cVValues.add(val);
             }
