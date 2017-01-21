@@ -33,8 +33,6 @@ public class ThumbnailsFragment extends Fragment implements LoaderManager.Loader
 
     private final static String LOG_TAG = ThumbnailsFragment.class.getName();
 
-    public static final String SQLITE_TRUE = "1";
-
     private ThumbnailAdapter thumbnailAdapter;
 
 
@@ -48,13 +46,14 @@ public class ThumbnailsFragment extends Fragment implements LoaderManager.Loader
     @Override
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
 
-        thumbnailAdapter = new ThumbnailAdapter(getActivity(), null, 0);
 
         View view = inflater.inflate(R.layout.fragment_thumbnail, container, false);
-        GridView thumbnails = (GridView) view.findViewById(R.id.thumbnails);
-        thumbnails.setAdapter(thumbnailAdapter);
-
-        thumbnails.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+        GridView mThumbnails = (GridView) view.findViewById(R.id.thumbnails);
+        if (thumbnailAdapter == null) {
+            thumbnailAdapter = new ThumbnailAdapter(getActivity(), null, 0);
+        }
+        mThumbnails.setAdapter(thumbnailAdapter);
+        mThumbnails.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 Cursor cursor = (Cursor) parent.getItemAtPosition(position);
@@ -140,7 +139,7 @@ public class ThumbnailsFragment extends Fragment implements LoaderManager.Loader
                 MoviesContract.MovieEntry.CONTENT_URI,
                 null,
                 whereCondition,
-                new String[] { SQLITE_TRUE },
+                new String[] { "1" },
                 sortOrder
         );
     }

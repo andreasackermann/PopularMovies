@@ -70,14 +70,6 @@ public class DetailFragment extends Fragment implements LoaderManager.LoaderCall
         setHasOptionsMenu(true);
     }
 
-    @Override
-    public void onActivityCreated(@Nullable Bundle savedInstanceState) {
-        getLoaderManager().initLoader(LOADER_MOVIES, null, this);
-        getLoaderManager().initLoader(LOADER_REVIEWS, null, this);
-        getLoaderManager().initLoader(LOADER_TRAILERS, null, this);
-        super.onActivityCreated(savedInstanceState);
-    }
-
     @Nullable
     @Override
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
@@ -86,7 +78,7 @@ public class DetailFragment extends Fragment implements LoaderManager.LoaderCall
         if (arguments != null) {
             root = inflater.inflate(R.layout.fragment_detail, container, false);
             mUri = arguments.getParcelable(DetailFragment.DETAIL_URI);
-            Log.d(LOG_TAG, "onCreateView:mUri = " + mUri);
+
             mHttpFetcher = new HttpFetcher();
             mHttpFetcher.execute(MoviesContract.getMovieIdFromUri(mUri));
 
@@ -100,8 +92,9 @@ public class DetailFragment extends Fragment implements LoaderManager.LoaderCall
             mFavoriteToggle = (ImageView) root.findViewById(R.id.toggleFavorite);
             return root;
         }
-        return root;
+        return null;
     }
+
 
 
     @Override
@@ -112,15 +105,23 @@ public class DetailFragment extends Fragment implements LoaderManager.LoaderCall
         MenuItem menuItem = menu.findItem(R.id.action_share);
         // Get the provider and hold onto it to set/change the share intent.
         mShareActionProvider = (ShareActionProvider) MenuItemCompat.getActionProvider(menuItem);
+
+        // Not my first choice where to init loaders but as the webservices are pretty fast I ran into
+        // many situations having a response from loader when mShareActionProvider was not ready.
+        getLoaderManager().initLoader(LOADER_MOVIES, null, this);
+        getLoaderManager().initLoader(LOADER_REVIEWS, null, this);
+        getLoaderManager().initLoader(LOADER_TRAILERS, null, this);
     }
 
     @Override
-    public void onPause() {
-        super.onPause();
+    public void onDestroyView() {
+        super.onDestroyView();
         if (this.mHttpFetcher!=null) {
             this.mHttpFetcher.cancel(true);
         }
+        mShareActionProvider.setShareIntent(null);
     }
+
 
     @Override
     public Loader<Cursor> onCreateLoader(int id, Bundle args) {
@@ -163,7 +164,6 @@ public class DetailFragment extends Fragment implements LoaderManager.LoaderCall
 
     @Override
     public void onLoadFinished(Loader<Cursor> loader, Cursor data) {
-        Log.d(LOG_TAG, "onLoadFinished id=" + loader.getId());
         switch (loader.getId()) {
             case LOADER_MOVIES:
                 if (data != null && data.moveToFirst()) {
@@ -204,7 +204,6 @@ public class DetailFragment extends Fragment implements LoaderManager.LoaderCall
                 }
                 break;
             case LOADER_REVIEWS:
-                Log.d(LOG_TAG, "data.getCount()=" + data.getCount());
                 mReviewsContainer.removeAllViews();
                 if (data.getCount()>0) {
                     while (data.moveToNext()) {
@@ -224,12 +223,12 @@ public class DetailFragment extends Fragment implements LoaderManager.LoaderCall
                 if (data.getCount()>0) {
                     while (data.moveToNext()) {
                         View row = LayoutInflater.from(getActivity()).inflate(R.layout.trailer_row, null);
-
-                        final String url = getString(R.string.youtube_base_url) + data.getString(data.getColumnIndex(MoviesContract.TrailerEntry.COLUMN_KEY));
+                        final String key = data.getString(data.getColumnIndex(MoviesContract.TrailerEntry.COLUMN_KEY));
+                        final String url = getString(R.string.youtube_base_url) + key;
                         row.findViewById(R.id.trailerPlayIcon).setOnClickListener(new View.OnClickListener() {
                             @Override
                             public void onClick(View v) {
-                                watchYoutubeVideo(url);
+                                watchYoutubeVideo(key);
                             }
                         });
                         row.findViewById(R.id.trailerShareIcon).setOnClickListener(new View.OnClickListener() {
@@ -239,9 +238,7 @@ public class DetailFragment extends Fragment implements LoaderManager.LoaderCall
                             }
                         });
                         if (data.isFirst()) {
-                            if (mShareActionProvider!=null) {
-                                mShareActionProvider.setShareIntent(getShareYouTubeVideoIntent(url));
-                            }
+                            mShareActionProvider.setShareIntent(getShareYouTubeVideoIntent(url));
                         }
                         ((TextView) row.findViewById(R.id.trailerName)).setText(data.getString(data.getColumnIndex(MoviesContract.TrailerEntry.COLUMN_NAME)));
                         mTrailersContainer.addView(row);
@@ -292,9 +289,16 @@ public class DetailFragment extends Fragment implements LoaderManager.LoaderCall
         }
     }
 
-    private void watchYoutubeVideo(String url){
-        Intent watchIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
-        startActivity(watchIntent);
+    // solution from http://stackoverflow.com/questions/574195/android-youtube-app-play-video-intent
+    private void watchYoutubeVideo(String key){
+        Intent appIntent = new Intent(Intent.ACTION_VIEW, Uri.parse("vnd.youtube:" + key));
+        Intent webIntent = new Intent(Intent.ACTION_VIEW,
+                Uri.parse(getString(R.string.youtube_base_url) + key));
+        try {
+            startActivity(appIntent);
+        } catch (ActivityNotFoundException ex) {
+            startActivity(webIntent);
+        }
     }
 
     private Intent getShareYouTubeVideoIntent(String url) {

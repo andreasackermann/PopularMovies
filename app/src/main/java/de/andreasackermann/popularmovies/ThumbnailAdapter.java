@@ -26,8 +26,7 @@ public class ThumbnailAdapter extends CursorAdapter {
 
     @Override
     public View newView(Context context, Cursor cursor, ViewGroup parent) {
-        View view = LayoutInflater.from(context).inflate(R.layout.movie_cell, parent, false);
-        return view;
+        return LayoutInflater.from(context).inflate(R.layout.movie_cell, parent, false);
     }
 
     @Override

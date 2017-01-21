@@ -22,8 +22,7 @@ public class TrailersAdapter extends CursorAdapter {
 
     @Override
     public View newView(Context context, Cursor cursor, ViewGroup parent) {
-        View view = LayoutInflater.from(context).inflate(R.layout.trailer_row, parent, false);
-        return view;
+        return LayoutInflater.from(context).inflate(R.layout.trailer_row, parent, false);
     }
 
     @Override
