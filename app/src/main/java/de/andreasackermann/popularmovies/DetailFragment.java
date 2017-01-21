@@ -112,7 +112,6 @@ public class DetailFragment extends Fragment implements LoaderManager.LoaderCall
         MenuItem menuItem = menu.findItem(R.id.action_share);
         // Get the provider and hold onto it to set/change the share intent.
         mShareActionProvider = (ShareActionProvider) MenuItemCompat.getActionProvider(menuItem);
-        super.onCreateOptionsMenu(menu, inflater);
     }
 
     @Override
@@ -187,8 +186,10 @@ public class DetailFragment extends Fragment implements LoaderManager.LoaderCall
                     final int isFavoriteAction = data.getInt(data.getColumnIndex(MoviesContract.MovieEntry.COLUMN_CAT_FAVORITE))==0?1:0;
                     if (isFavoriteAction==0) {
                         mFavoriteToggle.setImageResource(R.drawable.ic_favorite_border_black_24px);
+                        mFavoriteToggle.setContentDescription(getString(R.string.action_unmark_favorite));
                     } else {
                         mFavoriteToggle.setImageResource(R.drawable.ic_favorite_black_24px);
+                        mFavoriteToggle.setContentDescription(getString(R.string.action_mark_favorite));
                     }
                     mFavoriteToggle.setOnClickListener(new View.OnClickListener() {
                         @Override
@@ -225,23 +226,22 @@ public class DetailFragment extends Fragment implements LoaderManager.LoaderCall
                         View row = LayoutInflater.from(getActivity()).inflate(R.layout.trailer_row, null);
 
                         final String url = getString(R.string.youtube_base_url) + data.getString(data.getColumnIndex(MoviesContract.TrailerEntry.COLUMN_KEY));
-                        ((ImageView) row.findViewById(R.id.trailerPlayIcon)).setOnClickListener(new View.OnClickListener() {
+                        row.findViewById(R.id.trailerPlayIcon).setOnClickListener(new View.OnClickListener() {
                             @Override
                             public void onClick(View v) {
                                 watchYoutubeVideo(url);
                             }
                         });
-                        ((ImageView) row.findViewById(R.id.trailerShareIcon)).setOnClickListener(new View.OnClickListener() {
+                        row.findViewById(R.id.trailerShareIcon).setOnClickListener(new View.OnClickListener() {
                             @Override
                             public void onClick(View v) {
                                 shareYoutubeVideo(url);
                             }
                         });
                         if (data.isFirst()) {
-                            Intent shareIntent = new Intent(Intent.ACTION_SEND);
-                            shareIntent.putExtra(Intent.EXTRA_TEXT, getString(R.string.intro_share) + url);
-                            shareIntent.setType("text/plain");
-                            mShareActionProvider.setShareIntent(shareIntent);
+                            if (mShareActionProvider!=null) {
+                                mShareActionProvider.setShareIntent(getShareYouTubeVideoIntent(url));
+                            }
                         }
                         ((TextView) row.findViewById(R.id.trailerName)).setText(data.getString(data.getColumnIndex(MoviesContract.TrailerEntry.COLUMN_NAME)));
                         mTrailersContainer.addView(row);
@@ -278,12 +278,13 @@ public class DetailFragment extends Fragment implements LoaderManager.LoaderCall
 
         @Override
         protected Boolean doInBackground(String[] params) {
-            return new Boolean(new ReviewJsonHelper(getActivity(), (String) params[0]).updateDb() && new TrailerJsonHelper(getActivity(), (String) params[0]).updateDb());
+            return new ReviewJsonHelper(getActivity(), params[0]).updateDb()
+                    && new TrailerJsonHelper(getActivity(), params[0]).updateDb();
         }
 
         @Override
-        protected void onPostExecute(Boolean aBoolean) {
-            if (!this.isCancelled() && aBoolean.booleanValue() == false) {
+        protected void onPostExecute(Boolean online) {
+            if (!this.isCancelled() && !online) {
                 Snackbar snackbar = Snackbar
                         .make(DetailFragment.this.getView(), DetailFragment.this.getString(R.string.warn_no_internet), Snackbar.LENGTH_LONG);
                 snackbar.show();
@@ -291,26 +292,20 @@ public class DetailFragment extends Fragment implements LoaderManager.LoaderCall
         }
     }
 
-
-    /*
-     * Solution from http://stackoverflow.com/questions/574195/android-youtube-app-play-video-intent
-     */
     private void watchYoutubeVideo(String url){
-        Intent appIntent = new Intent(Intent.ACTION_VIEW, Uri.parse("vnd.youtube:" + url));
-        Intent webIntent = new Intent(Intent.ACTION_VIEW,
-                Uri.parse(url));
-        try {
-            startActivity(appIntent);
-        } catch (ActivityNotFoundException ex) {
-            startActivity(webIntent);
-        }
+        Intent watchIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+        startActivity(watchIntent);
+    }
+
+    private Intent getShareYouTubeVideoIntent(String url) {
+        Intent shareIntent = new Intent(Intent.ACTION_SEND);
+        shareIntent.putExtra(Intent.EXTRA_TEXT, getString(R.string.intro_share) + url);
+        shareIntent.setType("text/plain");
+        return shareIntent;
     }
 
     private void shareYoutubeVideo(String url){
-        Intent shareIntent = new Intent(Intent.ACTION_SEND);
-        shareIntent.putExtra(Intent.EXTRA_TEXT, "Have a look at " + url);
-        shareIntent.setType("text/plain");
-        startActivity(shareIntent);
+        startActivity(getShareYouTubeVideoIntent(url));
     }
 
 

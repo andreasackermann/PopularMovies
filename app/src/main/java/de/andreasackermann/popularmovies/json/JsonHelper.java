@@ -99,7 +99,7 @@ public abstract class JsonHelper {
                 if (inputStream != null) {
                     reader = new BufferedReader(new InputStreamReader(inputStream));
 
-                    StringBuffer sb = new StringBuffer();
+                    StringBuilder sb = new StringBuilder();
                     for (String line = reader.readLine(); line != null; line = reader.readLine()) {
                         sb.append(line);
                     }
@@ -127,7 +127,6 @@ public abstract class JsonHelper {
     protected abstract Uri getUri();
 
     protected void insertToDb(Vector<ContentValues> cVValues) {
-        int insertCount = context.getContentResolver().bulkInsert(getUri(), cVValues.toArray(new ContentValues[0]) );
-        Log.d(LOG_TAG, "Inserted " + insertCount + " records.");
+        context.getContentResolver().bulkInsert(getUri(), cVValues.toArray(new ContentValues[0]) );
     }
 }

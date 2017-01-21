@@ -12,7 +12,6 @@ import android.support.v4.app.Fragment;
 import android.support.v4.app.LoaderManager;
 import android.support.v4.content.CursorLoader;
 import android.support.v4.content.Loader;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -38,8 +37,6 @@ public class ThumbnailsFragment extends Fragment implements LoaderManager.Loader
 
     private ThumbnailAdapter thumbnailAdapter;
 
-    private GridView thumbnails;
-
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -54,7 +51,7 @@ public class ThumbnailsFragment extends Fragment implements LoaderManager.Loader
         thumbnailAdapter = new ThumbnailAdapter(getActivity(), null, 0);
 
         View view = inflater.inflate(R.layout.fragment_thumbnail, container, false);
-        thumbnails = (GridView) view.findViewById(R.id.thumbnails);
+        GridView thumbnails = (GridView) view.findViewById(R.id.thumbnails);
         thumbnails.setAdapter(thumbnailAdapter);
 
         thumbnails.setOnItemClickListener(new AdapterView.OnItemClickListener() {
@@ -163,12 +160,12 @@ public class ThumbnailsFragment extends Fragment implements LoaderManager.Loader
         @Override
         protected Boolean doInBackground(String[] params) {
             MovieJsonHelper h = new MovieJsonHelper(getContext(), params[0]);
-            return new Boolean(h.updateDb());
+            return h.updateDb();
         }
 
         @Override
-        protected void onPostExecute(Boolean aBoolean) {
-            if (aBoolean.booleanValue() == false) {
+        protected void onPostExecute(Boolean online) {
+            if (!online && ThumbnailsFragment.this.getView()!=null) {
                 Snackbar snackbar = Snackbar
                         .make(ThumbnailsFragment.this.getView(),
                                 ThumbnailsFragment.this.getString(R.string.warn_no_internet),

@@ -21,10 +21,15 @@
     <string name="value_order_top_rated" translatable="false">top_rated</string>
     <string name="value_order_favorites" translatable="false">favorites</string>
 
+    <string name="action_unmark_favorite">Remove from favorites</string>
+    <string name="action_mark_favorite">Add to favorites</string>
+    <string name="action_play_trailer">Play trailer</string>
+    <string name="action_share_trailer">Share trailer</string>
+
     <string name="content_authority">de.andreasackermann.popularmovies</string>
 
-    <string name="youtube_base_url">http://www.youtube.com/watch?v=</string>
+    <string name="youtube_base_url">https://www.youtube.com/watch?v=</string>
 
     <string name="menu_share">Share</string>
-    <string name="intro_share">Have a look at </string>
+    <string name="intro_share">Have a look at&#160;</string>
 </resources>

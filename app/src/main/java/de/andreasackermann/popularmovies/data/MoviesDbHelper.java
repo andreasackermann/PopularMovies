@@ -32,9 +32,9 @@ public class MoviesDbHelper extends SQLiteOpenHelper {
                         MoviesContract.MovieEntry.COLUMN_OVERVIEW + " TEXT NOT NULL, " +
                         MoviesContract.MovieEntry.COLUMN_RELEASED + " TEXT NOT NULL, " +
                         MoviesContract.MovieEntry.COLUMN_IMAGE + " TEXT NOT NULL, " +
-                        MoviesContract.MovieEntry.COLUMN_CAT_FAVORITE + " BOOLEAN, " +
-                        MoviesContract.MovieEntry.COLUMN_CAT_POPULAR + " BOOLEAN NOT NULL CHECK ("+MoviesContract.MovieEntry.COLUMN_CAT_POPULAR+" IN (0,1)), " +
-                        MoviesContract.MovieEntry.COLUMN_CAT_TOP_RATED + " BOOLEAN NOT NULL CHECK ("+MoviesContract.MovieEntry.COLUMN_CAT_TOP_RATED+" IN (0,1)), " +
+                        MoviesContract.MovieEntry.COLUMN_CAT_FAVORITE + " BOOLEAN DEFAULT 0 NOT NULL CHECK (" + MoviesContract.MovieEntry.COLUMN_CAT_FAVORITE + " IN (0,1)), " +
+                        MoviesContract.MovieEntry.COLUMN_CAT_POPULAR + " BOOLEAN NOT NULL CHECK (" + MoviesContract.MovieEntry.COLUMN_CAT_POPULAR + " IN (0,1)), " +
+                        MoviesContract.MovieEntry.COLUMN_CAT_TOP_RATED + " BOOLEAN NOT NULL CHECK ("+MoviesContract.MovieEntry.COLUMN_CAT_TOP_RATED + " IN (0,1)), " +
                         MoviesContract.MovieEntry.COLUMN_VOTE_AVG + " REAL, " +
                         MoviesContract.MovieEntry.COLUMN_POPULARITY + " REAL);";
 

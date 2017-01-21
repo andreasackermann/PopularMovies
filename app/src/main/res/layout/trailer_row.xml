@@ -11,17 +11,13 @@
     <ImageView
         android:id="@+id/trailerPlayIcon"
         app:srcCompat="@drawable/ic_play_arrow_black_24px"
-        android:contentDescription="Play trailer"
-        android:padding="8dip"
-        android:layout_width="48dip"
-        android:layout_height="48dip" />
+        android:contentDescription="@string/action_play_trailer"
+        style="@style/actionIcons" />
     <ImageView
         android:id="@+id/trailerShareIcon"
         app:srcCompat="@drawable/ic_share_black_24px"
-        android:contentDescription="Share trailer"
-        android:padding="8dip"
-        android:layout_width="48dip"
-        android:layout_height="48dip" />
+        android:contentDescription="@string/action_share_trailer"
+        style="@style/actionIcons" />
     <TextView
         android:id="@+id/trailerName"
         android:textStyle="bold"

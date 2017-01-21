@@ -17,7 +17,6 @@
             android:padding="16dp">
             <TextView
                 android:id="@+id/movieTitle"
-                android:text="TextView"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:textSize="24sp"
@@ -50,9 +49,7 @@
                 android:gravity="center">
                 <ImageView
                     android:id="@+id/toggleFavorite"
-                    android:padding="8dp"
-                    android:layout_width="48dip"
-                    android:layout_height="48dip"
+                    style="@style/actionIcons"
                     />
                 <TextView
                     android:id="@+id/publishDate"
@@ -71,33 +68,15 @@
             android:id="@+id/overview"/>
         <TextView
             android:text="@string/label_trailers"
-            android:textStyle="bold"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:paddingLeft="16dp"/>
+            style="@style/detailHeaders"/>
         <LinearLayout
-            android:orientation="vertical"
-            android:showDividers="middle"
-            android:divider="@drawable/divider"
-            android:dividerPadding="0dp"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:padding="16dp"
+            style="@style/linearLayoutDetail"
             android:id="@+id/trailers"/>
         <TextView
             android:text="@string/label_reviews"
-            android:textStyle="bold"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:paddingLeft="16dp"/>
+            style="@style/detailHeaders"/>
         <LinearLayout
-            android:orientation="vertical"
-            android:showDividers="middle"
-            android:divider="@drawable/divider"
-            android:dividerPadding="0dp"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:padding="16dp"
+            style="@style/linearLayoutDetail"
             android:id="@+id/reviews"/>
 
     </LinearLayout>

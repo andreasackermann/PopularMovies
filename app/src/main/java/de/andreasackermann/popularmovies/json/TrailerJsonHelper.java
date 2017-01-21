@@ -34,7 +34,7 @@ public class TrailerJsonHelper extends JsonHelper {
 
     @Override
     protected Vector<ContentValues> parseInput(String jsonInput) {
-        Vector<ContentValues> cVValues = new Vector<ContentValues>();
+        Vector<ContentValues> cVValues = new Vector<>();
         try {
             JSONObject jsonObject = new JSONObject(jsonInput);
             String movieId = jsonObject.getString("id");

@@ -2,10 +2,8 @@ package de.andreasackermann.popularmovies.json;
 
 import android.content.ContentValues;
 import android.content.Context;
-import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.net.Uri;
-import android.preference.PreferenceManager;
 import android.util.Log;
 
 import com.squareup.picasso.Picasso;
@@ -47,7 +45,7 @@ public class MovieJsonHelper extends JsonHelper {
 
     @Override
     protected Vector<ContentValues> parseInput(String jsonInput) {
-        Vector<ContentValues> cVValues = new Vector<ContentValues>();
+        Vector<ContentValues> cVValues = new Vector<>();
         try {
             JSONObject jsonObject = new JSONObject(jsonInput);
             JSONArray records = jsonObject.getJSONArray("results");
@@ -68,7 +66,6 @@ public class MovieJsonHelper extends JsonHelper {
                         builder.appendPath("p");
                         builder.appendPath("w185"); //size
                         builder.appendEncodedPath(posterPath);
-                        Log.d(LOG_TAG, "Fetching File " + file.toString() + " from " + builder.build().toString());
 
                         bitmap = Picasso.with(context).load(builder.build()).get();
 
@@ -79,7 +76,7 @@ public class MovieJsonHelper extends JsonHelper {
                         fos.close();
                     }
                 } catch (IOException e) {
-                    Log.e(LOG_TAG, "IOException");
+                    Log.e(LOG_TAG, "IOException occured storing thumbnail");
                 }
 
                 String overview = record.getString("overview");

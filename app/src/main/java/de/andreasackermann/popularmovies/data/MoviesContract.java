@@ -3,7 +3,6 @@ package de.andreasackermann.popularmovies.data;
 import android.content.ContentResolver;
 import android.net.Uri;
 import android.provider.BaseColumns;
-import android.util.Log;
 
 import de.andreasackermann.popularmovies.MainActivity;
 

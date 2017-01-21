@@ -6,13 +6,11 @@ import android.content.ContentValues;
 import android.content.UriMatcher;
 import android.database.Cursor;
 import android.database.SQLException;
-import android.database.sqlite.SQLiteConstraintException;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteQueryBuilder;
-import android.graphics.Movie;
 import android.net.Uri;
+import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
-import android.util.Log;
 
 /**
  * Created by Andreas on 08.01.2017.
@@ -46,7 +44,7 @@ public class MoviesProvider extends ContentProvider {
 
     @Nullable
     @Override
-    public Cursor query(Uri uri, String[] projection, String selection, String[] selectionArgs, String sortOrder) {
+    public Cursor query(@NonNull Uri uri, String[] projection, String selection, String[] selectionArgs, String sortOrder) {
         SQLiteQueryBuilder sqLiteQueryBuilder = new SQLiteQueryBuilder();
         switch (sUriMatcher.match(uri)) {
             case MOVIES:
@@ -74,14 +72,13 @@ public class MoviesProvider extends ContentProvider {
                 throw new UnsupportedOperationException("Unknown uri: " + uri);
         }
         Cursor cursor = sqLiteQueryBuilder.query(mDbHelper.getReadableDatabase(), projection,selection,selectionArgs,null,null,sortOrder);
-        Log.d(LOG_TAG, "Returning " + cursor.getCount() + " hits for uri " + uri);
         cursor.setNotificationUri(getContext().getContentResolver(), uri);
         return cursor;
     }
 
     @Nullable
     @Override
-    public String getType(Uri uri) {
+    public String getType(@NonNull Uri uri) {
 
         final int match = sUriMatcher.match(uri);
 
@@ -105,7 +102,7 @@ public class MoviesProvider extends ContentProvider {
 
     @Nullable
     @Override
-    public Uri insert(Uri uri, ContentValues values) {
+    public Uri insert(@NonNull Uri uri, ContentValues values) {
         final SQLiteDatabase db = mDbHelper.getWritableDatabase();
         final int match = sUriMatcher.match(uri);
         Uri returnUri;
@@ -139,7 +136,6 @@ public class MoviesProvider extends ContentProvider {
                 throw new UnsupportedOperationException("Unknown uri: " + uri);
         }
         getContext().getContentResolver().notifyChange(uri, null);
-        Log.d(LOG_TAG, "Inserted: " + returnUri.toString());
         return returnUri;
     }
 
@@ -155,15 +151,18 @@ public class MoviesProvider extends ContentProvider {
      */
     private long insertOrUpdateById(SQLiteDatabase db, Uri uri, String table,
                                     ContentValues values) throws SQLException {
-            int nrRows = update(uri, values, MoviesContract.MovieEntry._ID + "=?",
+            int nrRows = db.update(MoviesContract.MovieEntry.TABLE_NAME,
+                    values,
+                    MoviesContract.MovieEntry._ID + " = ?",
                     new String[]{values.getAsString(MoviesContract.MovieEntry._ID)});
-            if (nrRows > 0)
+            if (nrRows > 0) {
                 return Long.parseLong(values.getAsString(MoviesContract.MovieEntry._ID));
+            }
             return db.insertOrThrow(table, null, values);
     }
 
     @Override
-    public int bulkInsert(Uri uri, ContentValues[] values) {
+    public int bulkInsert(@NonNull Uri uri, @NonNull ContentValues[] values) {
         final SQLiteDatabase db = mDbHelper.getWritableDatabase();
         final int match = sUriMatcher.match(uri);
         int insertCount = 0;
@@ -216,7 +215,7 @@ public class MoviesProvider extends ContentProvider {
     }
 
     @Override
-    public int delete(Uri uri, String selection, String[] selectionArgs) {
+    public int delete(@NonNull Uri uri, String selection, String[] selectionArgs) {
         final SQLiteDatabase db = mDbHelper.getWritableDatabase();
         final int match = sUriMatcher.match(uri);
         int deleteCount;
@@ -240,7 +239,7 @@ public class MoviesProvider extends ContentProvider {
     }
 
     @Override
-    public int update(Uri uri, ContentValues values, String selection, String[] selectionArgs) {
+    public int update(@NonNull Uri uri, ContentValues values, String selection, String[] selectionArgs) {
         final SQLiteDatabase db = mDbHelper.getWritableDatabase();
         final int match = sUriMatcher.match(uri);
         int updateCount;
@@ -267,7 +266,6 @@ public class MoviesProvider extends ContentProvider {
         if (updateCount != 0) {
             getContext().getContentResolver().notifyChange(uri, null);
         }
-        Log.d(LOG_TAG, "Update count = " + updateCount);
         return updateCount;
     }
 
