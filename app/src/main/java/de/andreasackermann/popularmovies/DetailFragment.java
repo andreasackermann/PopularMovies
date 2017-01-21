@@ -116,10 +116,12 @@ public class DetailFragment extends Fragment implements LoaderManager.LoaderCall
     @Override
     public void onDestroyView() {
         super.onDestroyView();
-        if (this.mHttpFetcher!=null) {
-            this.mHttpFetcher.cancel(true);
+        if (mHttpFetcher!=null) {
+            mHttpFetcher.cancel(true);
         }
-        mShareActionProvider.setShareIntent(null);
+        if (mShareActionProvider!=null) {
+            mShareActionProvider.setShareIntent(null);
+        }
     }
 
 
