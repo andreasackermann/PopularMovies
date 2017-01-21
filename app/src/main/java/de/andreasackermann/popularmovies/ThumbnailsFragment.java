@@ -86,7 +86,12 @@ public class ThumbnailsFragment extends Fragment implements LoaderManager.Loader
     @Override
     public void onActivityCreated(@Nullable Bundle savedInstanceState) {
         getLoaderManager().initLoader(0, null, this);
-        new httpFetcher().execute();
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getContext());
+        String order = prefs.getString(getContext().getString(R.string.pref_order_key),getContext().getString(R.string.pref_order_default));
+        if (!order.equals(getString(R.string.value_order_favorites))) {
+            // Favorite entries are taken only from local db
+            new HttpFetcher().execute(order);
+        }
         super.onActivityCreated(savedInstanceState);
     }
 
@@ -145,42 +150,31 @@ public class ThumbnailsFragment extends Fragment implements LoaderManager.Loader
 
     @Override
     public void onLoadFinished(Loader<Cursor> loader, Cursor data) {
-        Log.d(LOG_TAG, "onLoadFinished");
-        if (data.getCount() > 0) {
-            Log.d(LOG_TAG, "Cursor count = " + data.getCount());
-            thumbnailAdapter.swapCursor(data);
-
-        } else {
-            Snackbar snackbar = Snackbar
-                    .make(thumbnails, ThumbnailsFragment.this.getString(R.string.warn_no_internet), Snackbar.LENGTH_LONG)
-                    .setAction(ThumbnailsFragment.this.getString(R.string.warn_button_retry), new View.OnClickListener() {
-                        @Override
-                        public void onClick(View view) {
-                            // todo implement
-                        }
-                    });
-
-            snackbar.show();
-        }
-        // TODO scoll?
+        thumbnailAdapter.swapCursor(data);
     }
 
     @Override
     public void onLoaderReset(Loader<Cursor> loader) {
-        Log.d(LOG_TAG, "onLoaderReset");
         thumbnailAdapter.swapCursor(null);
     }
 
-    private class httpFetcher extends AsyncTask {
+    private class HttpFetcher extends AsyncTask<String, Void, Boolean> {
 
         @Override
-        protected Object doInBackground(Object[] params) {
-            SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getActivity());
-            String order = prefs.getString(getString(R.string.pref_order_key),getString(R.string.pref_order_default));
+        protected Boolean doInBackground(String[] params) {
+            MovieJsonHelper h = new MovieJsonHelper(getContext(), params[0]);
+            return new Boolean(h.updateDb());
+        }
 
-            MovieJsonHelper h = new MovieJsonHelper(getContext());
-            h.updateDb();
-            return null;
+        @Override
+        protected void onPostExecute(Boolean aBoolean) {
+            if (aBoolean.booleanValue() == false) {
+                Snackbar snackbar = Snackbar
+                        .make(ThumbnailsFragment.this.getView(),
+                                ThumbnailsFragment.this.getString(R.string.warn_no_internet),
+                                Snackbar.LENGTH_LONG);
+                snackbar.show();
+            }
         }
     }
 }

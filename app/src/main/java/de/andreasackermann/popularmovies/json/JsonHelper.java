@@ -45,14 +45,22 @@ public abstract class JsonHelper {
         this.context = context;
     }
 
-    public void updateDb() {
-        String resp = getResponse();
-        if (resp != null) {
-            Vector<ContentValues> val = parseInput(resp);
-            if (val.size() > 0) {
-                insertToDb(val);
+    /**
+     * Try to update database with JSON result from tmdb response
+     * @return true if a network connection could be established, false otherwise
+     */
+    public boolean updateDb() {
+        if (isOnline()) {
+            String resp = getResponse();
+            if (resp != null) {
+                Vector<ContentValues> val = parseInput(resp);
+                if (val.size() > 0) {
+                    insertToDb(val);
+                }
             }
+            return true;
         }
+        return false;
     }
 
     /**
@@ -61,51 +69,53 @@ public abstract class JsonHelper {
      * as suggested in implementation guide
      */
     public boolean isOnline() {
-        ConnectivityManager cm =
-                (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
-        NetworkInfo netInfo = cm.getActiveNetworkInfo();
-        return netInfo != null && netInfo.isConnectedOrConnecting();
+        try {
+            ConnectivityManager cm =
+                    (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
+            NetworkInfo netInfo = cm.getActiveNetworkInfo();
+            return netInfo != null && netInfo.isConnectedOrConnecting();
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     protected String getResponse() {
-        if (isOnline()) {
-            HttpURLConnection urlConnection = null;
-            BufferedReader reader = null;
+        HttpURLConnection urlConnection = null;
+        BufferedReader reader = null;
 
-            try {
+        try {
 
 
-                Uri uri = httpUriBuilder.build();
+            Uri uri = httpUriBuilder.build();
 
-                URL url = new URL(uri.toString());
+            URL url = new URL(uri.toString());
 
-                urlConnection = (HttpURLConnection) url.openConnection();
-                urlConnection.setRequestMethod("GET");
-                urlConnection.connect();
-                if (urlConnection.getResponseCode() == 200) {
-                    InputStream inputStream = urlConnection.getInputStream();
+            urlConnection = (HttpURLConnection) url.openConnection();
+            urlConnection.setRequestMethod("GET");
+            urlConnection.connect();
+            if (urlConnection.getResponseCode() == 200) {
+                InputStream inputStream = urlConnection.getInputStream();
 
-                    if (inputStream != null) {
-                        reader = new BufferedReader(new InputStreamReader(inputStream));
+                if (inputStream != null) {
+                    reader = new BufferedReader(new InputStreamReader(inputStream));
 
-                        StringBuffer sb = new StringBuffer();
-                        for (String line = reader.readLine(); line != null; line = reader.readLine()) {
-                            sb.append(line);
-                        }
-                        return sb.toString();
+                    StringBuffer sb = new StringBuffer();
+                    for (String line = reader.readLine(); line != null; line = reader.readLine()) {
+                        sb.append(line);
                     }
+                    return sb.toString();
                 }
-            } catch (Exception e) {
-                Log.e(LOG_TAG, "Exception: " + e.getMessage());
-            } finally {
-                if (urlConnection != null) {
-                    urlConnection.disconnect();
-                }
-                if (reader != null) {
-                    try {
-                        reader.close();
-                    } catch (final IOException e) {
-                    }
+            }
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "Exception: " + e.getMessage());
+        } finally {
+            if (urlConnection != null) {
+                urlConnection.disconnect();
+            }
+            if (reader != null) {
+                try {
+                    reader.close();
+                } catch (final IOException e) {
                 }
             }
         }

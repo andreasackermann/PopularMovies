@@ -31,20 +31,18 @@ public class MovieJsonHelper extends JsonHelper {
 
     private final static String LOG_TAG = MovieJsonHelper.class.getName();
 
+    private String mOrder;
+
     @Override
     protected Uri getUri() {
         return MoviesContract.MovieEntry.CONTENT_URI;
     }
 
-    public MovieJsonHelper(Context context) {
+    public MovieJsonHelper(Context context, String order) {
         super(context);
-        httpUriBuilder.appendPath(getOrder());
+        mOrder = order;
+        httpUriBuilder.appendPath(mOrder);
         httpUriBuilder.appendQueryParameter(API_KEY, BuildConfig.THE_MOVIE_DB_API_KEY);
-    }
-
-    private String getOrder() {
-        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
-        return prefs.getString(context.getString(R.string.pref_order_key),context.getString(R.string.pref_order_default));
     }
 
     @Override
@@ -60,8 +58,6 @@ public class MovieJsonHelper extends JsonHelper {
                 String posterPath = record.getString("poster_path");
                 File file = new File(context.getExternalFilesDir(null) + "/" + posterPath);
                 try {
-
-
                     if (!file.exists()) {
                         // don't think we have to handle updates on the thumbnails
                         Bitmap bitmap;
@@ -100,17 +96,15 @@ public class MovieJsonHelper extends JsonHelper {
                 val.put(MoviesContract.MovieEntry.COLUMN_RELEASED, releaseDate);
                 val.put(MoviesContract.MovieEntry.COLUMN_IMAGE, file.toString());
                 val.put(MoviesContract.MovieEntry.COLUMN_CAT_TOP_RATED,
-                        getOrder().equals(context.getResources().getString(R.string.value_order_top_rated))?1:0);
+                        mOrder.equals(context.getResources().getString(R.string.value_order_top_rated))?1:0);
                 val.put(MoviesContract.MovieEntry.COLUMN_CAT_POPULAR,
-                        getOrder().equals(context.getResources().getString(R.string.value_order_popular))?1:0);
+                        mOrder.equals(context.getResources().getString(R.string.value_order_popular))?1:0);
 
                 cVValues.add(val);
             }
-            Log.d(LOG_TAG, "Got " + records.length() + " records!");
         } catch (JSONException e) {
             Log.e(LOG_TAG, "Unable to interpret response", e);
         }
         return cVValues;
-
     }
 }

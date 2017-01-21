@@ -20,31 +20,23 @@ import android.util.Log;
 
 public class MoviesProvider extends ContentProvider {
 
-    private final String LOG_TAG = MoviesProvider.class.getSimpleName();
-
-    static final int MOVIES = 100;
-
-    static final int MOVIE_DETAIL = 101;
-
-    static final int TRAILERS = 200;
-
-    static final int TRAILERS_FOR_MOVIE = 201;
-
-    static final int REVIEWS = 300;
-
-    static final int REVIEWS_FOR_MOVIE = 301;
-
-    private static final String sTrailerByMovie =
-            MoviesContract.TrailerEntry.TABLE_NAME + "." + MoviesContract.TrailerEntry.COLUMN_MOVIE_ID + " = ?";
-
-    private static final String sReviewByMovie =
-            MoviesContract.ReviewEntry.TABLE_NAME + "." + MoviesContract.ReviewEntry.COLUMN_MOVIE_ID + " = ?";
-
-
-
-    private MoviesDbHelper mDbHelper;
     private static final UriMatcher sUriMatcher = buildUriMatcher();
 
+    private final String LOG_TAG = MoviesProvider.class.getSimpleName();
+
+    private static final int MOVIES = 100;
+
+    private static final int MOVIE_DETAIL = 101;
+
+    private static final int TRAILERS = 200;
+
+    private static final int TRAILERS_FOR_MOVIE = 201;
+
+    private static final int REVIEWS = 300;
+
+    private static final int REVIEWS_FOR_MOVIE = 301;
+
+    private MoviesDbHelper mDbHelper;
 
     @Override
     public boolean onCreate() {
@@ -121,7 +113,7 @@ public class MoviesProvider extends ContentProvider {
         switch (match) {
             case MOVIES: {
                 // keep personal favorite setting
-                long _id = insertOrUpdateById(db, uri, MoviesContract.MovieEntry.TABLE_NAME, values, MoviesContract.MovieEntry._ID);
+                long _id = insertOrUpdateById(db, uri, MoviesContract.MovieEntry.TABLE_NAME, values);
                 returnUri = ContentUris.withAppendedId(MoviesContract.MovieEntry.CONTENT_URI, _id);
                 break;
             }
@@ -159,22 +151,15 @@ public class MoviesProvider extends ContentProvider {
      * @param uri    Content provider uri.
      * @param table  Table to insert to.
      * @param values The values to insert to.
-     * @param column Column to identify the object.
      * @throws android.database.SQLException
      */
     private long insertOrUpdateById(SQLiteDatabase db, Uri uri, String table,
-                                    ContentValues values, String column) throws SQLException {
-        try {
+                                    ContentValues values) throws SQLException {
+            int nrRows = update(uri, values, MoviesContract.MovieEntry._ID + "=?",
+                    new String[]{values.getAsString(MoviesContract.MovieEntry._ID)});
+            if (nrRows > 0)
+                return Long.parseLong(values.getAsString(MoviesContract.MovieEntry._ID));
             return db.insertOrThrow(table, null, values);
-        } catch (SQLiteConstraintException e) {
-            int nrRows = update(uri, values, column + "=?",
-                    new String[]{values.getAsString(column)});
-            if (nrRows == 0)
-                throw e;
-
-            return Long.parseLong(values.getAsString(column));
-
-        }
     }
 
     @Override
@@ -192,8 +177,7 @@ public class MoviesProvider extends ContentProvider {
                                 db,
                                 uri,
                                 MoviesContract.MovieEntry.TABLE_NAME,
-                                value,
-                                MoviesContract.MovieEntry._ID);
+                                value);
                         if (_id != -1) {
                             insertCount++;
                         }
@@ -283,6 +267,7 @@ public class MoviesProvider extends ContentProvider {
         if (updateCount != 0) {
             getContext().getContentResolver().notifyChange(uri, null);
         }
+        Log.d(LOG_TAG, "Update count = " + updateCount);
         return updateCount;
     }
 

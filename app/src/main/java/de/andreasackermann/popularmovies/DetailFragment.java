@@ -1,7 +1,6 @@
 package de.andreasackermann.popularmovies;
 
 import android.content.ActivityNotFoundException;
-import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Intent;
 import android.database.Cursor;
@@ -9,12 +8,18 @@ import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
+import android.support.design.widget.Snackbar;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.LoaderManager;
 import android.support.v4.content.CursorLoader;
 import android.support.v4.content.Loader;
+import android.support.v4.view.MenuItemCompat;
+import android.support.v7.widget.ShareActionProvider;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
@@ -30,7 +35,6 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 
 import de.andreasackermann.popularmovies.data.MoviesContract;
-import de.andreasackermann.popularmovies.json.MovieJsonHelper;
 import de.andreasackermann.popularmovies.json.ReviewJsonHelper;
 import de.andreasackermann.popularmovies.json.TrailerJsonHelper;
 
@@ -48,6 +52,8 @@ public class DetailFragment extends Fragment implements LoaderManager.LoaderCall
     private static final int LOADER_REVIEWS = 1;
     private static final int LOADER_TRAILERS = 2;
 
+    private ShareActionProvider mShareActionProvider;
+
     private LinearLayout mReviewsContainer;
     private LinearLayout mTrailersContainer;
     private ImageView mImageView;
@@ -58,21 +64,32 @@ public class DetailFragment extends Fragment implements LoaderManager.LoaderCall
     private TextView mVoteAverageView;
 
     private Uri mUri;
+    private HttpFetcher mHttpFetcher;
 
     public DetailFragment() {
-//        setHasOptionsMenu(true);
+        setHasOptionsMenu(true);
+    }
+
+    @Override
+    public void onActivityCreated(@Nullable Bundle savedInstanceState) {
+        getLoaderManager().initLoader(LOADER_MOVIES, null, this);
+        getLoaderManager().initLoader(LOADER_REVIEWS, null, this);
+        getLoaderManager().initLoader(LOADER_TRAILERS, null, this);
+        super.onActivityCreated(savedInstanceState);
     }
 
     @Nullable
     @Override
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-
+        View root = null;
         Bundle arguments = getArguments();
         if (arguments != null) {
+            root = inflater.inflate(R.layout.fragment_detail, container, false);
             mUri = arguments.getParcelable(DetailFragment.DETAIL_URI);
-            new httpFetcher().execute(MoviesContract.getMovieIdFromUri(mUri));
+            Log.d(LOG_TAG, "onCreateView:mUri = " + mUri);
+            mHttpFetcher = new HttpFetcher();
+            mHttpFetcher.execute(MoviesContract.getMovieIdFromUri(mUri));
 
-            View root = inflater.inflate(R.layout.fragment_detail, container, false);
             mImageView = (ImageView)root.findViewById(R.id.moviePoster);
             mOriginalTitleView = (TextView)root.findViewById(R.id.movieTitle);
             mOverviewView = (TextView)root.findViewById(R.id.overview);
@@ -83,16 +100,27 @@ public class DetailFragment extends Fragment implements LoaderManager.LoaderCall
             mFavoriteToggle = (ImageView) root.findViewById(R.id.toggleFavorite);
             return root;
         }
-        return null;
+        return root;
+    }
 
+
+    @Override
+    public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
+        inflater.inflate(R.menu.detail, menu);
+
+        // Retrieve the share menu item
+        MenuItem menuItem = menu.findItem(R.id.action_share);
+        // Get the provider and hold onto it to set/change the share intent.
+        mShareActionProvider = (ShareActionProvider) MenuItemCompat.getActionProvider(menuItem);
+        super.onCreateOptionsMenu(menu, inflater);
     }
 
     @Override
-    public void onActivityCreated(@Nullable Bundle savedInstanceState) {
-        getLoaderManager().initLoader(LOADER_MOVIES, null, this);
-        getLoaderManager().initLoader(LOADER_REVIEWS, null, this);
-        getLoaderManager().initLoader(LOADER_TRAILERS, null, this);
-        super.onActivityCreated(savedInstanceState);
+    public void onPause() {
+        super.onPause();
+        if (this.mHttpFetcher!=null) {
+            this.mHttpFetcher.cancel(true);
+        }
     }
 
     @Override
@@ -175,35 +203,54 @@ public class DetailFragment extends Fragment implements LoaderManager.LoaderCall
                 }
                 break;
             case LOADER_REVIEWS:
+                Log.d(LOG_TAG, "data.getCount()=" + data.getCount());
                 mReviewsContainer.removeAllViews();
-                try {
-                    data.moveToFirst();
-                    do {
+                if (data.getCount()>0) {
+                    while (data.moveToNext()) {
                         View row = LayoutInflater.from(getActivity()).inflate(R.layout.review_row, null);
                         ((TextView) row.findViewById(R.id.reviewAuthor)).setText(data.getString(data.getColumnIndex(MoviesContract.ReviewEntry.COLUMN_AUTHOR)));
                         ((TextView) row.findViewById(R.id.reviewContent)).setText(data.getString(data.getColumnIndex(MoviesContract.ReviewEntry.COLUMN_CONTENT)));
                         mReviewsContainer.addView(row);
-                    } while (data.moveToNext());
-                } catch (Exception e) {}
+                    }
+                } else {
+                    TextView noResult = new TextView(getContext());
+                    noResult.setText(getString(R.string.label_reviews_unavailable));
+                    mReviewsContainer.addView(noResult);
+                }
                 break;
             case LOADER_TRAILERS:
                 mTrailersContainer.removeAllViews();
-                try {
-                    data.moveToFirst();
-                    do {
-
+                if (data.getCount()>0) {
+                    while (data.moveToNext()) {
                         View row = LayoutInflater.from(getActivity()).inflate(R.layout.trailer_row, null);
-                        ((TextView) row.findViewById(R.id.trailerName)).setText(data.getString(data.getColumnIndex(MoviesContract.TrailerEntry.COLUMN_NAME)));
-                        final String key = data.getString(data.getColumnIndex(MoviesContract.TrailerEntry.COLUMN_KEY));
+
+                        final String url = getString(R.string.youtube_base_url) + data.getString(data.getColumnIndex(MoviesContract.TrailerEntry.COLUMN_KEY));
                         ((ImageView) row.findViewById(R.id.trailerPlayIcon)).setOnClickListener(new View.OnClickListener() {
                             @Override
                             public void onClick(View v) {
-                                watchYoutubeVideo(key);
+                                watchYoutubeVideo(url);
                             }
                         });
+                        ((ImageView) row.findViewById(R.id.trailerShareIcon)).setOnClickListener(new View.OnClickListener() {
+                            @Override
+                            public void onClick(View v) {
+                                shareYoutubeVideo(url);
+                            }
+                        });
+                        if (data.isFirst()) {
+                            Intent shareIntent = new Intent(Intent.ACTION_SEND);
+                            shareIntent.putExtra(Intent.EXTRA_TEXT, getString(R.string.intro_share) + url);
+                            shareIntent.setType("text/plain");
+                            mShareActionProvider.setShareIntent(shareIntent);
+                        }
+                        ((TextView) row.findViewById(R.id.trailerName)).setText(data.getString(data.getColumnIndex(MoviesContract.TrailerEntry.COLUMN_NAME)));
                         mTrailersContainer.addView(row);
-                    } while (data.moveToNext());
-                } catch (Exception e) {}
+                    }
+                } else {
+                    TextView noResult = new TextView(getContext());
+                    noResult.setText(getString(R.string.label_trailers_unavailable));
+                    mTrailersContainer.addView(noResult);
+                }
                 break;
         }
     }
@@ -227,14 +274,20 @@ public class DetailFragment extends Fragment implements LoaderManager.LoaderCall
         return voteAverage + "/10";
     }
 
-    private class httpFetcher extends AsyncTask {
+    private class HttpFetcher extends AsyncTask<String, Void, Boolean> {
 
         @Override
-        protected Object doInBackground(Object[] params) {
-            MovieJsonHelper h = new MovieJsonHelper(getContext());
-            new ReviewJsonHelper(getActivity(), (String) params[0]).updateDb();
-            new TrailerJsonHelper(getActivity(), (String) params[0]).updateDb();
-            return null;
+        protected Boolean doInBackground(String[] params) {
+            return new Boolean(new ReviewJsonHelper(getActivity(), (String) params[0]).updateDb() && new TrailerJsonHelper(getActivity(), (String) params[0]).updateDb());
+        }
+
+        @Override
+        protected void onPostExecute(Boolean aBoolean) {
+            if (!this.isCancelled() && aBoolean.booleanValue() == false) {
+                Snackbar snackbar = Snackbar
+                        .make(DetailFragment.this.getView(), DetailFragment.this.getString(R.string.warn_no_internet), Snackbar.LENGTH_LONG);
+                snackbar.show();
+            }
         }
     }
 
@@ -242,14 +295,23 @@ public class DetailFragment extends Fragment implements LoaderManager.LoaderCall
     /*
      * Solution from http://stackoverflow.com/questions/574195/android-youtube-app-play-video-intent
      */
-    public void watchYoutubeVideo(String id){
-        Intent appIntent = new Intent(Intent.ACTION_VIEW, Uri.parse("vnd.youtube:" + id));
+    private void watchYoutubeVideo(String url){
+        Intent appIntent = new Intent(Intent.ACTION_VIEW, Uri.parse("vnd.youtube:" + url));
         Intent webIntent = new Intent(Intent.ACTION_VIEW,
-                Uri.parse("http://www.youtube.com/watch?v=" + id));
+                Uri.parse(url));
         try {
             startActivity(appIntent);
         } catch (ActivityNotFoundException ex) {
             startActivity(webIntent);
         }
     }
+
+    private void shareYoutubeVideo(String url){
+        Intent shareIntent = new Intent(Intent.ACTION_SEND);
+        shareIntent.putExtra(Intent.EXTRA_TEXT, "Have a look at " + url);
+        shareIntent.setType("text/plain");
+        startActivity(shareIntent);
+    }
+
+
 }
